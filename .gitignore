@@ -1,0 +1,9 @@
+/build*/
+/out/
+/dist/
+.vs/
+.vscode/
+*.user
+CMakeUserPresets.json
+__pycache__/
+*.recording.mp4

@@ -1,0 +1,2 @@
+#pragma once
+#define OTL_VERSION "@PROJECT_VERSION@"

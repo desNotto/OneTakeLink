@@ -1,0 +1,54 @@
+# OneTakeLink — notes for development sessions
+
+Windows desktop app (C++20, Qt 6 Widgets, FFmpeg) that records guitar takes
+from an iPhone running the official **LensLink Camera** app. Spec (Russian):
+`docs/spec/Technical_Specification_OneTakeLink_v1.0.txt`. User-facing text
+and the README are in **Russian**; code, comments and commits in English.
+
+## Layout (maps to spec §14)
+
+| Layer | Path | Notes |
+|-------|------|-------|
+| Camera/Input | `src/camera/` | `CameraSource` = interface; everything else depends only on it and `core/VideoTypes.h` |
+| LensLink module | `src/camera/lenslink/` | `LensLinkSource` (worker thread: dial USB/Wi-Fi, protocol, decode), `VideoDecoder` (D3D11VA→DXVA2→software), `LensLinkDiscovery` |
+| Ported C | `src/camera/lenslink/proto/` | from LensLink `obs-plugin/src`, GPL-2.0-or-later; keep the per-file provenance header up to date when changing them |
+| Preview | `src/preview/` | `PreviewWidget` (QOpenGLWidget, NV12/I420 → RGB shader, QPainter overlays), `CropMath.h` shared with export |
+| Recording | `src/recording/` | `Recorder` (passthrough remux, worker thread, GOP pre-roll), `Mp4Writer`, `TakeNamer` |
+| Library | `src/library/`, `src/ui/LibraryPage.*` | |
+| UI | `src/ui/` | `MainWindow`, `ShootPage`, `Style` |
+| CLI | `tools/otl_cli.cpp` | `otl-cli devices|monitor|record|recover` |
+
+Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_tests`.
+
+## Key design decisions
+
+- **Recording is passthrough**: the phone's H.264/HEVC access units are muxed
+  into MP4 as-is (no re-encode). Written as fragmented MP4 `*.recording.mp4`
+  (0.5 s fragments), remuxed to a regular faststart MP4 on stop; leftovers are
+  repaired at startup (`Recorder::recoverInterrupted`). Re-encoding (NVENC/QSV/
+  AMF/x264) belongs to the Export layer (stage 4).
+- Takes start at the last keyframe before REC (LensLink sends a keyframe every
+  2–4 s and ignores keyframe requests).
+- LensLink protocol: the phone listens on TCP 9979; we dial (USB via usbmuxd
+  `localhost:27015` on Windows). See `docs/LENSLINK_PROTOCOL.md`. On connect we
+  send `identify`, `reference off`, and once per connection `set_format`
+  (default 1080p/60/h264) + `set_quality maximum` if STATE says it differs.
+- Signals from worker threads (std::thread) reach the UI queued — always
+  connect with a receiver/context object.
+- Show only real camera controls (spec §5.2): gate on STATE fields.
+- No telemetry, no network except the phone link.
+
+## Build & test (Linux container)
+
+```bash
+apt-get install -y qt6-base-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libgl-dev ninja-build
+cmake -S . -B build -G Ninja && cmake --build build && ./build/otl_tests
+python3 tools/fake_phone.py &            # fake LensLink Camera on :9979
+./build/otl-cli record wifi:127.0.0.1 /tmp/t.mp4 5
+```
+
+GUI on a virtual display: `Xvfb :99 &` then
+`DISPLAY=:99 ./build/OneTakeLink --connect=wifi:127.0.0.1`.
+Windows builds come from `.github/workflows/build.yml` (Qt 6.8.3 MSVC,
+FFmpeg 7.1.1 gyan.dev shared). Don't include `windows.h`/`winsock2.h` inside
+`extern "C"` blocks.
