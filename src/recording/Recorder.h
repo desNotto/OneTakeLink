@@ -43,7 +43,9 @@ public:
 
     // Main thread. `finalPath` is where the finished .mp4 goes.
     // rotationCw: display rotation stored in the file (lossless).
-    bool start(const QString &finalPath, QString *error, int rotationCw = 0);
+    // recordAudio: add an AAC track if the source is sending microphone
+    // audio when the take starts (otherwise the take is video only).
+    bool start(const QString &finalPath, QString *error, int rotationCw = 0, bool recordAudio = false);
     void stop();
     State state() const { return m_state; }
     bool hasStream() const;
@@ -55,6 +57,7 @@ public:
     // EncodedPacketSink — called on the camera worker thread.
     void onStreamFormat(const StreamFormat &format) override;
     void onPacket(const EncodedPacket &packet) override;
+    void onAudio(const AudioChunk &chunk) override;
     void onStreamLost(const QString &reason) override;
 
     // Repairs takes interrupted by a crash or power loss in `folder`
@@ -73,11 +76,13 @@ signals:
 
 private:
     struct Item {
-        enum Kind { Format, Packet, Lost, Start, Stop, Quit } kind;
+        enum Kind { Format, Packet, Audio, Lost, Start, Stop, Quit } kind;
         StreamFormat format;
         EncodedPacket packet;
         QString text;
         int value = 0;
+        bool flag = false;
+        AudioChunk audio;
     };
 
     void post(Item item);
@@ -85,6 +90,7 @@ private:
     void setState(State s);
     void beginFile();
     void writePacket(const EncodedPacket &p);
+    void writeAudio(const AudioChunk &chunk);
     void finish(const QString &warning);
 
     std::thread m_thread;
@@ -100,6 +106,13 @@ private:
     std::vector<EncodedPacket> m_gop; // packets since the last keyframe
     QString m_finalPath;
     int m_rotation = 0;
+    bool m_recordAudio = false;
+    std::deque<AudioChunk> m_audioBuffer;  // recent audio, for the pre-roll
+    int64_t m_lastAudioLocalNs = 0;        // when the last chunk arrived
+    bool m_audioAligned = false;
+    int64_t m_audioClockOffset = 0;        // audio pts - video pts clock skew
+    int64_t m_beginLocalNs = 0;
+    int64_t m_beginRelNs = 0;
     std::unique_ptr<Mp4Writer> m_writer;
     int64_t m_firstPts = 0;
     int64_t m_lastPts = 0;

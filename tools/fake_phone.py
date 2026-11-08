@@ -9,10 +9,23 @@ TIMESYNC requests and prints the CONTROL commands it receives.
     python3 tools/fake_phone.py [--port 9979] [--fps 60] [--drop-after SEC]
     otl-cli monitor wifi:127.0.0.1
 """
-import argparse, json, os, socket, struct, subprocess, sys, tempfile, threading, time
+import argparse, json, math, os, socket, struct, subprocess, sys, tempfile, threading, time
 
 MAGIC = b"OBSC"
 HELLO, VIDEO_CONFIG, VIDEO, PING, TS_REQ, TS_RESP, CONTROL, STATE = 1, 2, 3, 4, 5, 6, 7, 8
+SCREEN_AUDIO = 10
+AUDIO_RATE = 48000
+
+
+def beep_pcm(first_sample, count, rate=AUDIO_RATE):
+    """Stereo S16LE: a 50 ms 1 kHz beep at every whole second, silence
+    otherwise -- lets a test check audio/video sync in the recording."""
+    out = bytearray()
+    for i in range(first_sample, first_sample + count):
+        t = i / rate
+        v = int(12000 * math.sin(2 * math.pi * 1000 * t)) if (t % 1.0) < 0.05 else 0
+        out += struct.pack("<hh", v, v)
+    return bytes(out)
 
 
 def packet(ptype, payload=b"", pts=0, flags=0):
@@ -65,7 +78,7 @@ def state(fps):
             "codecs": ["h264", "hevc"], "quality": "balanced"}
 
 
-def serve(conn, units, fps, drop_after):
+def serve(conn, units, fps, drop_after, audio=False):
     conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     alive = [True]
 
@@ -100,8 +113,10 @@ def serve(conn, units, fps, drop_after):
     conn.sendall(packet(VIDEO_CONFIG, json.dumps(
         {"codec": "h264", "width": 1920, "height": 1080, "fps": fps, "kind": "camera"}).encode()))
     start = time.monotonic()
+    start_ns = time.monotonic_ns()
     interval = 1.0 / fps
     n = 0
+    audio_sent = 0  # samples
     # Start on a keyframe, then loop the clip.
     first_key = next(i for i, (_, k) in enumerate(units) if k)
     order = units[first_key:]
@@ -115,7 +130,14 @@ def serve(conn, units, fps, drop_after):
         if delay > 0:
             time.sleep(delay)
         try:
-            conn.sendall(packet(VIDEO, au, time.monotonic_ns(), 1 if key else 0))
+            # Video pts on the ideal frame grid of the same clock as audio.
+            conn.sendall(packet(VIDEO, au, start_ns + int(n * 1e9 / fps), 1 if key else 0))
+            if audio:
+                due = int((time.monotonic() - start) * AUDIO_RATE)
+                while audio_sent + 960 <= due:
+                    pcm = beep_pcm(audio_sent, 960)
+                    conn.sendall(packet(SCREEN_AUDIO, pcm, start_ns + int(audio_sent * 1e9 / AUDIO_RATE)))
+                    audio_sent += 960
             if n % (fps * 2) == 0:
                 conn.sendall(packet(PING))
         except OSError:
@@ -131,6 +153,8 @@ def main():
     ap.add_argument("--fps", type=int, default=60)
     ap.add_argument("--seconds", type=int, default=10, help="length of the looped test clip")
     ap.add_argument("--drop-after", type=float, default=0, help="close each connection after N s")
+    ap.add_argument("--audio", action="store_true",
+                    help='send phone-mic audio (as with "Send phone mic to OBS" on)')
     args = ap.parse_args()
 
     clip = os.path.join(tempfile.gettempdir(), f"otl_fake_{args.fps}.h264")
@@ -148,7 +172,7 @@ def main():
     while True:
         conn, addr = srv.accept()
         print("client connected:", addr, flush=True)
-        serve(conn, units, args.fps, args.drop_after)
+        serve(conn, units, args.fps, args.drop_after, args.audio)
         print("client gone", flush=True)
 
 

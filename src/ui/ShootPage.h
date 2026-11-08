@@ -91,6 +91,7 @@ private:
     void applySourceOptions();
     void sendCommand(const QJsonObject &cmd);
     void emitSummary();
+    void updateAudioInfo();
     void buildMonitorButtons();
     void applyRotation(int degreesCw);
 
@@ -122,6 +123,7 @@ private:
     QLabel *m_infoMissing = nullptr;
     QLabel *m_infoLatency = nullptr;
     QLabel *m_infoDecoder = nullptr;
+    QLabel *m_infoAudio = nullptr;
 
     // Camera group
     QGroupBox *m_cameraGroup = nullptr;
@@ -156,6 +158,7 @@ private:
     QLineEdit *m_projectEdit = nullptr;
     QLabel *m_nextNameLabel = nullptr;
     QComboBox *m_countdownCombo = nullptr;
+    QCheckBox *m_audioCheck = nullptr;
     QPushButton *m_recButton = nullptr;
     QLabel *m_durationLabel = nullptr;
     QLabel *m_savedLabel = nullptr;

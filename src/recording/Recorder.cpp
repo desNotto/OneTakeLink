@@ -2,6 +2,7 @@
 #include "Recorder.h"
 
 #include "Mp4Writer.h"
+#include "camera/StreamHandler.h"
 
 #include <QDir>
 #include <QDirIterator>
@@ -51,7 +52,7 @@ bool Recorder::hasStream() const
     return m_hasStream;
 }
 
-bool Recorder::start(const QString &finalPath, QString *error, int rotationCw)
+bool Recorder::start(const QString &finalPath, QString *error, int rotationCw, bool recordAudio)
 {
     if (m_state != State::Idle) {
         *error = tr("Запись уже идёт");
@@ -78,7 +79,9 @@ bool Recorder::start(const QString &finalPath, QString *error, int rotationCw)
         return false;
     }
     setState(State::WaitingKeyframe);
-    post({Item::Start, {}, {}, finalPath, rotationCw});
+    Item item{Item::Start, {}, {}, finalPath, rotationCw};
+    item.flag = recordAudio;
+    post(std::move(item));
     return true;
 }
 
@@ -96,6 +99,13 @@ void Recorder::onStreamFormat(const StreamFormat &format)
 void Recorder::onPacket(const EncodedPacket &packet)
 {
     post({Item::Packet, {}, packet, {}});
+}
+
+void Recorder::onAudio(const AudioChunk &chunk)
+{
+    Item item{Item::Audio, {}, {}, {}};
+    item.audio = chunk;
+    post(std::move(item));
 }
 
 void Recorder::onStreamLost(const QString &reason)
@@ -159,8 +169,22 @@ void Recorder::run()
             }
             break;
         }
+        case Item::Audio: {
+            const AudioChunk &a = item.audio;
+            if (a.frames() <= 0)
+                break;
+            m_lastAudioLocalNs = monotonicNs();
+            // Keep ~12 s for the pre-roll (a keyframe interval is <= 10 s).
+            m_audioBuffer.push_back(a);
+            while (!m_audioBuffer.empty() && a.ptsNs - m_audioBuffer.front().ptsNs > 12'000'000'000LL)
+                m_audioBuffer.pop_front();
+            if (m_writer && m_writer->hasAudio())
+                writeAudio(a);
+            break;
+        }
         case Item::Lost:
             m_gop.clear();
+            m_audioBuffer.clear();
             m_formatValid = false;
             if (m_writer) {
                 finish(tr("%1 — сохранён записанный фрагмент.").arg(item.text));
@@ -173,6 +197,7 @@ void Recorder::run()
         case Item::Start:
             m_finalPath = item.text;
             m_rotation = item.value;
+            m_recordAudio = item.flag;
             // Start from the last keyframe we hold, if any.
             if (m_formatValid && !m_gop.empty() && m_gop.front().keyframe)
                 beginFile();
@@ -194,7 +219,12 @@ void Recorder::beginFile()
     QString error;
     auto writer = std::make_unique<Mp4Writer>();
     const QString temp = tempPathFor(m_finalPath);
-    if (!writer->open(temp, m_format, true, &error, m_rotation)) {
+    // An audio track only if microphone audio is actually arriving.
+    const bool audioLive = m_recordAudio && !m_audioBuffer.empty() &&
+                           monotonicNs() - uint64_t(m_lastAudioLocalNs) < 1'500'000'000ULL;
+    const int sampleRate = audioLive ? m_audioBuffer.back().sampleRate : 0;
+    const int channels = audioLive ? m_audioBuffer.back().channels : 0;
+    if (!writer->open(temp, m_format, true, &error, m_rotation, sampleRate, channels)) {
         QFile::remove(temp);
         m_finalPath.clear();
         setState(State::Idle);
@@ -215,6 +245,58 @@ void Recorder::beginFile()
             break;
         writePacket(p);
     }
+    // Audio from the same moment on.
+    m_audioAligned = false;
+    m_audioClockOffset = 0;
+    m_beginLocalNs = int64_t(monotonicNs());
+    m_beginRelNs = m_lastPts - m_firstPts;
+    if (m_writer && m_writer->hasAudio()) {
+        const std::deque<AudioChunk> buffered = m_audioBuffer;
+        for (const AudioChunk &a : buffered) {
+            if (!m_writer)
+                break;
+            writeAudio(a);
+        }
+    }
+}
+
+void Recorder::writeAudio(const AudioChunk &a)
+{
+    const int sr = std::max(1, a.sampleRate);
+    int64_t rel = a.ptsNs - m_firstPts;
+    if (!m_audioAligned) {
+        m_audioAligned = true;
+        // Phone audio and video share a clock (LensLink, scrcpy). If they
+        // obviously don't, align by arrival time instead of drifting apart.
+        if (rel > 10'000'000'000LL || rel < -20'000'000'000LL) {
+            const int64_t expected = m_beginRelNs + (int64_t(monotonicNs()) - m_beginLocalNs);
+            m_audioClockOffset = rel - expected;
+            qWarning("[recorder] audio clock differs from video by %lld ms, aligning by arrival",
+                     static_cast<long long>(m_audioClockOffset / 1000000));
+        }
+    }
+    rel -= m_audioClockOffset;
+
+    const int64_t startFrame = rel * sr / 1'000'000'000LL; // position of this chunk
+    const int64_t written = m_writer->audioFramesWritten();
+    const int frames = a.frames();
+    int skip = 0;
+    if (startFrame < written) {
+        // Overlap or before the take's start: drop what's already covered.
+        skip = int(std::min<int64_t>(frames, written - startFrame));
+    } else if (startFrame - written > sr / 50) {
+        // A gap (> 20 ms, e.g. a lost chunk): fill with silence.
+        QString error;
+        if (!m_writer->writeAudio(nullptr, int(startFrame - written), &error)) {
+            finish(error);
+            return;
+        }
+    }
+    if (skip >= frames)
+        return;
+    QString error;
+    if (!m_writer->writeAudio(a.samples->data() + size_t(skip) * size_t(a.channels), frames - skip, &error))
+        finish(error);
 }
 
 void Recorder::writePacket(const EncodedPacket &p)
@@ -299,7 +381,7 @@ bool Recorder::remux(const QString &in, const QString &out, QString *error)
     std::vector<int> map(ictx->nb_streams, -1);
     for (unsigned i = 0; i < ictx->nb_streams; ++i) {
         AVStream *is = ictx->streams[i];
-        if (is->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
+        if (is->codecpar->codec_type != AVMEDIA_TYPE_VIDEO && is->codecpar->codec_type != AVMEDIA_TYPE_AUDIO)
             continue;
         AVStream *os = avformat_new_stream(octx, nullptr);
         avcodec_parameters_copy(os->codecpar, is->codecpar);

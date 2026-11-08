@@ -550,8 +550,13 @@ bool LensLinkSource::handlePacket(Session &s, int type, uint16_t flags, uint64_t
             }
         }
         break;
+    case OBSC_PKT_SCREEN_AUDIO:
+        // Phone microphone as playable audio (LensLink Camera's "Send phone
+        // mic to OBS"): 48 kHz stereo S16LE, pts on the video clock.
+        s.stream->onAudio(payload, size, OBSC_SCREEN_AUDIO_SAMPLE_RATE, OBSC_SCREEN_AUDIO_CHANNELS, int64_t(pts));
+        break;
     default:
-        break; // PING, AUDIO, DIAG, REQUEST... not used
+        break; // PING, AUDIO (lip-sync reference), DIAG, REQUEST... not used
     }
     return true;
 }

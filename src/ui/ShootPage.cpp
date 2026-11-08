@@ -144,7 +144,7 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
 
     for (QLabel *l : {m_statusLabel, m_hintLabel, m_folderLabel, m_nextNameLabel, m_durationLabel,
                       m_savedLabel, m_diskLabel, m_infoDevice, m_infoResolution, m_infoFps, m_infoCodec,
-                      m_infoBitrate, m_infoMissing, m_infoLatency, m_infoDecoder})
+                      m_infoBitrate, m_infoMissing, m_infoLatency, m_infoDecoder, m_infoAudio})
         fitPanel(l);
     for (QComboBox *c : m_panel->widget()->findChildren<QComboBox *>()) {
         c->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
@@ -446,6 +446,7 @@ QGroupBox *ShootPage::buildStreamGroup()
     m_infoMissing = mk(tr("Пропуски кадров"));
     m_infoLatency = mk(tr("Задержка"));
     m_infoDecoder = mk(tr("Декодер"));
+    m_infoAudio = mk(tr("Звук"));
     return g;
 }
 
@@ -603,6 +604,18 @@ QGroupBox *ShootPage::buildRecordGroup()
     m_countdownCombo->addItem(tr("10 секунд"), 10);
     m_countdownCombo->setCurrentIndex(std::max(0, m_countdownCombo->findData(m_settings->countdownSeconds)));
     f->addRow(tr("Таймер"), m_countdownCombo);
+    m_audioCheck = new QCheckBox(tr("Записывать звук"));
+    m_audioCheck->setChecked(m_settings->recordAudio);
+    m_audioCheck->setToolTip(tr("Звук с микрофона телефона, дорожка AAC 48 кГц стерео.\n"
+                                "Android: включается автоматически (камера перезапустится).\n"
+                                "iPhone: включите в LensLink Camera «Send phone mic to OBS»."));
+    f->addRow(QString(), m_audioCheck);
+    connect(m_audioCheck, &QCheckBox::toggled, this, [this](bool on) {
+        m_settings->recordAudio = on;
+        m_settings->save();
+        applyAndroidOptions(true); // Android starts/stops sending audio
+        updateAudioInfo();
+    });
     v->addLayout(f);
 
     m_nextNameLabel = new QLabel;
@@ -708,6 +721,7 @@ void ShootPage::applyAndroidOptions(bool restartIfRunning)
     o.bitrateMbps = m_settings->androidBitrate;
     o.codec = m_settings->androidCodec;
     o.hardwareDecode = m_settings->hardwareDecode;
+    o.audio = m_settings->recordAudio;
     m_android->setOptions(o);
     if (restartIfRunning && m_source == m_android && m_android->isRunning()) {
         if (isRecording())
@@ -840,9 +854,11 @@ void ShootPage::onStats(const StreamStats &st)
         for (QLabel *l : {m_infoResolution, m_infoFps, m_infoCodec, m_infoBitrate, m_infoMissing,
                           m_infoLatency, m_infoDecoder})
             l->setText(QStringLiteral("—"));
+        updateAudioInfo();
         emitSummary();
         return;
     }
+    updateAudioInfo();
     m_infoResolution->setText(QStringLiteral("%1×%2").arg(st.width).arg(st.height));
     QString fps = QStringLiteral("%1").arg(st.fpsReceived, 0, 'f', 1);
     if (st.nominalFps > 0)
@@ -857,6 +873,25 @@ void ShootPage::onStats(const StreamStats &st)
     m_infoLatency->setText(st.latencyMs >= 0 ? tr("~%1 мс").arg(qRound(st.latencyMs)) : QStringLiteral("—"));
     m_infoDecoder->setText(st.decoder.isEmpty() ? QStringLiteral("—") : st.decoder);
     emitSummary();
+}
+
+void ShootPage::updateAudioInfo()
+{
+    QString text;
+    if (!m_settings->recordAudio) {
+        text = tr("не записывается");
+    } else if (m_stats.audio) {
+        text = tr("%1 кГц, %2").arg(m_stats.audioSampleRate / 1000.0, 0, 'g', 3)
+                   .arg(m_stats.audioChannels >= 2 ? tr("стерео") : tr("моно"));
+    } else if (m_stats.streaming) {
+        text = m_activeDevice.kind == SourceKind::Android
+                   ? QStringLiteral("<span style='color:#fbbf24'>%1</span>").arg(tr("не поступает"))
+                   : QStringLiteral("<span style='color:#fbbf24'>%1</span>")
+                         .arg(tr("не поступает — включите «Send phone mic to OBS» в LensLink Camera"));
+    } else {
+        text = QStringLiteral("—");
+    }
+    m_infoAudio->setText(text);
 }
 
 void ShootPage::onCameraState(const QJsonObject &state)
@@ -983,7 +1018,7 @@ void ShootPage::startRecordingNow()
     namer.pattern = m_settings->namePattern;
     const QString path = namer.nextTakePath();
     QString error;
-    if (!m_recorder->start(path, &error, m_preview->rotation())) {
+    if (!m_recorder->start(path, &error, m_preview->rotation(), m_settings->recordAudio)) {
         onRecorderState(m_recorder->state());
         QMessageBox::warning(this, tr("Запись не началась"), error);
         return;
@@ -1035,6 +1070,7 @@ void ShootPage::onRecorderState(Recorder::State state)
     }
     m_recButton->setEnabled(state != Recorder::State::Finalizing);
     const bool idle = state == Recorder::State::Idle;
+    m_audioCheck->setEnabled(idle);
     m_rotateButton->setEnabled(idle);
     m_resetRotationButton->setEnabled(idle && m_preview->rotation() != 0);
     // Re-polish so the stylesheet picks up the "recording" property.

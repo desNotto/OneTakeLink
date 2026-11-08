@@ -36,7 +36,7 @@ static void usage()
     std::puts("usage:\n"
               "  otl-cli devices\n"
               "  otl-cli monitor <usb|usb:UDID|wifi:IP|android|android:SERIAL> [seconds]\n"
-              "  otl-cli record  <device> <out.mp4> [seconds]\n"
+              "  otl-cli record  <device> <out.mp4> [seconds] [--audio]\n"
               "  otl-cli recover <folder>   repair takes interrupted by a crash");
 }
 
@@ -47,7 +47,10 @@ int main(int argc, char *argv[])
     av_log_set_level(AV_LOG_WARNING);
     qRegisterMetaType<otl::SourceStatus>();
     qRegisterMetaType<otl::StreamStats>();
-    const QStringList args = app.arguments();
+    QStringList args = app.arguments();
+    // --audio: record the phone microphone too (Android: also requested
+    // from the phone; iPhone: needs "Send phone mic to OBS" in the app).
+    const bool withAudio = args.removeAll(QStringLiteral("--audio")) > 0;
     if (args.size() < 2) {
         usage();
         return 2;
@@ -93,6 +96,9 @@ int main(int argc, char *argv[])
     android::AndroidSource androidSource;
     CameraSource &source = device.kind == SourceKind::Android ? static_cast<CameraSource &>(androidSource)
                                                                : static_cast<CameraSource &>(lensSource);
+    android::AndroidOptions aopt = androidSource.options();
+    aopt.audio = withAudio;
+    androidSource.setOptions(aopt);
     Recorder recorder;
     source.setPacketSink(&recorder);
 
@@ -112,17 +118,18 @@ int main(int argc, char *argv[])
             return;
         last = now;
         std::printf("[stream] %dx%d %s  recv %.1f fps  decoded %.1f fps  (nominal %.0f)  %.1f Mbit/s  "
-                    "missing %llu/%llu  latency %s  decoder %s\n",
+                    "missing %llu/%llu  latency %s  decoder %s  audio %s\n",
                     st.width, st.height, qPrintable(st.codec), st.fpsReceived, st.fpsDecoded, st.nominalFps,
                     st.mbps, (unsigned long long)st.framesMissing,
                     (unsigned long long)(st.framesReceived + st.framesMissing),
                     st.latencyMs >= 0 ? qPrintable(QStringLiteral("%1 ms").arg(qRound(st.latencyMs))) : "n/a",
-                    qPrintable(st.decoder));
+                    qPrintable(st.decoder),
+                    st.audio ? qPrintable(QStringLiteral("%1 Hz x%2").arg(st.audioSampleRate).arg(st.audioChannels)) : "none");
         std::fflush(stdout);
         if (record && !recordingRequested && recorder.hasStream()) {
             recordingRequested = true;
             QString error;
-            if (!recorder.start(outPath, &error)) {
+            if (!recorder.start(outPath, &error, 0, withAudio)) {
                 std::printf("[record] cannot start: %s\n", qPrintable(error));
                 exitCode = 1;
                 app.quit();

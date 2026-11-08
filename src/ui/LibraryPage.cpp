@@ -252,7 +252,7 @@ QWidget *LibraryPage::buildPool()
     m_table->setUniformRowHeights(true);
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     m_table->header()->setStretchLastSection(true);
-    const int widths[] = {30, 320, 120, 60, 80, 90, 45, 55};
+    const int widths[] = {30, 300, 120, 60, 80, 90, 45, 100};
     for (int c = 0; c < ColSession; ++c)
         m_table->setColumnWidth(c, widths[c]);
 
@@ -500,7 +500,7 @@ void LibraryPage::fillRow(QStandardItem *name, const Entry &e)
     cell(ColResolution)->setData(qint64(e.info.width) * e.info.height, kSortRole);
     cell(ColFps)->setText(fpsText(e.info.fps));
     cell(ColFps)->setData(e.info.fps, kSortRole);
-    cell(ColCodec)->setText(e.info.codec);
+    cell(ColCodec)->setText(e.info.hasAudio ? e.info.codec + QStringLiteral(" + AAC") : e.info.codec);
     cell(ColCodec)->setData(e.info.codec, kSortRole);
 }
 
@@ -559,10 +559,11 @@ QString LibraryPage::detailsText(const QString &path) const
     if (it == m_cache.constEnd() || !it->probed || !it->info.ok)
         return QDir::toNativeSeparators(path);
     const MediaInfo &i = it->info;
-    return QStringLiteral("%1×%2 · %3 fps · %4 · %5 · %6")
+    return QStringLiteral("%1×%2 · %3 fps · %4 · %5 · %6 · %7")
         .arg(i.width)
         .arg(i.height)
-        .arg(fpsText(i.fps), i.codec, durationText(i.durationMs), sizeText(it->size));
+        .arg(fpsText(i.fps), i.codec, i.hasAudio ? tr("со звуком") : tr("без звука"),
+             durationText(i.durationMs), sizeText(it->size));
 }
 
 void LibraryPage::onSelectionChanged()

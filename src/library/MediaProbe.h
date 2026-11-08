@@ -18,6 +18,7 @@ struct MediaInfo {
     int width = 0;  // as displayed (rotation applied)
     int height = 0;
     int rotation = 0; // clockwise degrees
+    bool hasAudio = false;
     double fps = 0;
     QString codec;
     QString error;

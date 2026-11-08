@@ -11,7 +11,9 @@
 #include <QRandomGenerator>
 #include <QThread>
 
+#include <atomic>
 #include <cstring>
+#include <thread>
 #include <vector>
 
 #include "net-compat.h"
@@ -27,6 +29,7 @@ constexpr uint64_t kPacketKey = 1ULL << 61;
 constexpr uint64_t kPtsMask = kPacketKey - 1;
 constexpr uint32_t kCodecH264 = 0x68323634; // "h264"
 constexpr uint32_t kCodecH265 = 0x68323635; // "h265"
+constexpr uint32_t kCodecRaw = 0x00726177;  // "raw": 48 kHz stereo S16LE
 constexpr int kSilenceTimeoutMs = 6000;
 
 uint32_t be32(const uint8_t *p)
@@ -39,7 +42,7 @@ uint64_t be64(const uint8_t *p)
     return uint64_t(be32(p)) << 32 | be32(p + 4);
 }
 
-// Reads exactly `len` bytes. 1 = ok, 0 = closed/timeout/stopped, -1 = error.
+// Reads exactly `len` bytes. 1 = ok, 0 = timeout/stopped, -1 = closed/error.
 int readExact(socket_t s, uint8_t *buf, size_t len, int timeoutMs, const std::atomic<bool> &stop)
 {
     size_t got = 0;
@@ -58,7 +61,7 @@ int readExact(socket_t s, uint8_t *buf, size_t len, int timeoutMs, const std::at
         }
         const int n = int(recv(s, reinterpret_cast<char *>(buf + got), int(len - got), 0));
         if (n == 0)
-            return 0;
+            return -1;
         if (n < 0) {
             if (net_would_block())
                 continue;
@@ -264,7 +267,7 @@ void AndroidSource::run(DeviceInfo device)
                             QStringLiteral("scid=%1").arg(scid, 8, 16, QLatin1Char('0')),
                             QStringLiteral("log_level=info"),
                             QStringLiteral("video_source=camera"),
-                            QStringLiteral("audio=false"),
+                            opt.audio ? QStringLiteral("audio=true") : QStringLiteral("audio=false"),
                             QStringLiteral("control=false"),
                             QStringLiteral("tunnel_forward=true"),
                             QStringLiteral("send_dummy_byte=true"),
@@ -279,6 +282,11 @@ void AndroidSource::run(DeviceInfo device)
                             // Keyframe every second: takes start close to REC.
                             QStringLiteral("video_codec_options=i-frame-interval:int=1"),
                             QStringLiteral("cleanup=true")};
+        if (opt.audio) {
+            // Uncompressed: encoded to AAC by the recorder like iPhone audio.
+            // The camcorder profile is tuned for video recording.
+            args << QStringLiteral("audio_codec=raw") << QStringLiteral("audio_source=mic-camcorder");
+        }
         QProcess server;
         server.setProcessChannelMode(QProcess::MergedChannels);
         server.start(Adb::executable(), args);
@@ -311,10 +319,49 @@ void AndroidSource::run(DeviceInfo device)
             QThread::msleep(100);
         }
 
+        // The audio socket must be accepted before the server sends
+        // anything else, so connect it right after the video socket.
+        socket_t audioSock = OBSC_INVALID_SOCKET;
+        if (sock != OBSC_INVALID_SOCKET && opt.audio)
+            audioSock = connectLocal(port);
+
         bool gotVideo = false;
         QString endReason;
         if (sock != OBSC_INVALID_SOCKET) {
             StreamHandler stream(m_packetSink, m_frameSink, opt.hardwareDecode);
+            std::atomic<bool> sessionDone{false};
+            std::thread audioThread;
+            if (audioSock != OBSC_INVALID_SOCKET) {
+                audioThread = std::thread([&] {
+                    uint8_t h[12];
+                    if (readExact(audioSock, h, 4, 10000, sessionDone) != 1)
+                        return;
+                    const uint32_t id = be32(h);
+                    if (id != kCodecRaw) {
+                        // 0: the phone could not capture audio; video goes on.
+                        qWarning("[android] audio not available (codec id %u)", id);
+                        return;
+                    }
+                    std::vector<uint8_t> pcm;
+                    while (!sessionDone) {
+                        const int r = readExact(audioSock, h, sizeof(h), 2000, sessionDone);
+                        if (r < 0)
+                            return; // closed
+                        if (r == 0)
+                            continue; // quiet (or stopping: the loop checks)
+                        const uint64_t flags = be64(h);
+                        const uint32_t size = be32(h + 8);
+                        if (size > 4u * 1024 * 1024)
+                            return;
+                        pcm.resize(size);
+                        if (size && readExact(audioSock, pcm.data(), size, 2000, sessionDone) != 1)
+                            return;
+                        if (flags & kPacketConfig)
+                            continue;
+                        stream.onAudio(pcm.data(), pcm.size(), 48000, 2, int64_t(flags & kPtsMask) * 1000);
+                    }
+                });
+            }
             uint8_t meta[64];
             uint8_t head[12];
             if (readExact(sock, meta, sizeof(meta), 5000, m_stop) == 1 &&
@@ -382,9 +429,14 @@ void AndroidSource::run(DeviceInfo device)
                     endReason = tr("Телефон не смог запустить камеру");
                 }
             }
+            sessionDone = true;
+            if (audioThread.joinable())
+                audioThread.join();
             net_close(sock);
             stream.streamLost(m_stop ? tr("Источник остановлен") : endReason);
         }
+        if (audioSock != OBSC_INVALID_SOCKET)
+            net_close(audioSock);
 
         // 5. Tear down: the server exits when its socket closes.
         pumpServerOutput();

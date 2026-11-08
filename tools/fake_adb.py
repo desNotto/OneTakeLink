@@ -17,7 +17,8 @@ Env knobs: FAKE_ADB_STATE (device|unauthorized|none), FAKE_ADB_NO60=1
 import os, socket, struct, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fake_phone import make_stream, split_access_units  # noqa: E402
+from fake_phone import beep_pcm, make_stream, split_access_units  # noqa: E402
+import threading  # noqa: E402
 
 PORT = int(os.environ.get("FAKE_ADB_PORT", "27310"))
 SERIAL = "FAKE0123456789"
@@ -62,6 +63,15 @@ def serve(args):
     srv.listen(1)
     conn, _ = srv.accept()
     conn.sendall(b"\x00")                                   # dummy byte
+    audio_conn = None
+    if opts.get("audio") == "true":
+        audio_conn, _ = srv.accept()                        # 2nd socket: audio
+        if os.environ.get("FAKE_ADB_NO_AUDIO"):
+            audio_conn.sendall(struct.pack(">I", 0))        # "audio disabled"
+            audio_conn.close()
+            audio_conn = None
+        else:
+            audio_conn.sendall(struct.pack(">I", 0x00726177))  # "raw"
     conn.sendall(b"Pixel 8".ljust(64, b"\x00"))             # device meta
     conn.sendall(struct.pack(">I", 0x68323634))             # "h264"
     conn.sendall(struct.pack(">III", 0x80000000, w, h))     # session packet
@@ -73,6 +83,24 @@ def serve(args):
     drop = float(os.environ.get("FAKE_ADB_DROP_AFTER", "0"))
     start = time.monotonic()
     n = 0
+    stop = [False]
+
+    def audio_loop():
+        sent = 0
+        while not stop[0]:
+            due = int((time.monotonic() - start) * 48000)
+            if sent + 1024 > due:
+                time.sleep(0.005)
+                continue
+            pcm = beep_pcm(sent, 1024)
+            try:
+                audio_conn.sendall(struct.pack(">QI", int(sent * 1e6 / 48000), len(pcm)) + pcm)
+            except OSError:
+                return
+            sent += 1024
+
+    if audio_conn:
+        threading.Thread(target=audio_loop, daemon=True).start()
     try:
         while True:
             if drop and time.monotonic() - start > drop:
@@ -90,7 +118,10 @@ def serve(args):
             n += 1
     except OSError:
         pass
+    stop[0] = True
     conn.close()
+    if audio_conn:
+        audio_conn.close()
     return 0
 
 

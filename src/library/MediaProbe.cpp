@@ -67,6 +67,7 @@ MediaInfo probeMedia(const QString &path)
     }
     if (info.durationMs <= 0 && ctx->duration != AV_NOPTS_VALUE)
         info.durationMs = ctx->duration / 1000;
+    info.hasAudio = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0) >= 0;
     info.ok = vs >= 0;
     if (!info.ok)
         info.error = QCoreApplication::translate("otl::MediaProbe", "нет видеодорожки");

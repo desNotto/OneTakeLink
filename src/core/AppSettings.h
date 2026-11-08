@@ -39,6 +39,7 @@ struct AppSettings {
     bool guidesEnabled = true;
 
     int countdownSeconds = 0; // 0, 3, 5, 10
+    bool recordAudio = false; // phone microphone -> AAC track
 
     static AppSettings load();
     void save() const;

@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstring>
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -125,6 +126,27 @@ bool StreamHandler::onAccessUnit(const uint8_t *data, size_t size, int64_t ptsNs
     return first;
 }
 
+void StreamHandler::onAudio(const uint8_t *pcm, size_t bytes, int sampleRate, int channels, int64_t ptsNs)
+{
+    if (channels <= 0 || bytes < size_t(2 * channels))
+        return;
+    const size_t samples = bytes / 2 / size_t(channels) * size_t(channels);
+    auto data = std::make_shared<std::vector<int16_t>>(samples);
+    // Wire format is little-endian, like every PC this runs on.
+    std::memcpy(data->data(), pcm, samples * 2);
+    m_audioRate = sampleRate;
+    m_audioChannels = channels;
+    m_winAudioFrames += samples / size_t(channels);
+    if (m_packetSink) {
+        AudioChunk c;
+        c.samples = std::move(data);
+        c.sampleRate = sampleRate;
+        c.channels = channels;
+        c.ptsNs = ptsNs;
+        m_packetSink->onAudio(c);
+    }
+}
+
 bool StreamHandler::takeStats(StreamStats *out, bool force, int minWindowMs)
 {
     const uint64_t now = monotonicNs();
@@ -145,6 +167,9 @@ bool StreamHandler::takeStats(StreamStats *out, bool force, int minWindowMs)
     st.framesMissing = m_missing;
     st.latencyMs = m_latencyMs;
     st.decoder = m_decoder ? QString::fromStdString(m_decoder->apiName()) : QString();
+    st.audio = m_winAudioFrames.exchange(0) > 0;
+    st.audioSampleRate = st.audio ? m_audioRate.load() : 0;
+    st.audioChannels = st.audio ? m_audioChannels.load() : 0;
     m_windowStartNs = now;
     m_winPackets = m_winFrames = m_winBytes = 0;
     *out = st;

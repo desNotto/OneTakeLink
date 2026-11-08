@@ -51,6 +51,7 @@ AppSettings AppSettings::load()
     a.monitorRotation = s.value("camera/rotation", 0).toInt();
     a.guidesEnabled = s.value("guides/enabled", a.guidesEnabled).toBool();
     a.countdownSeconds = s.value("record/countdown", a.countdownSeconds).toInt();
+    a.recordAudio = s.value("record/audio", a.recordAudio).toBool();
     return a;
 }
 
@@ -81,6 +82,7 @@ void AppSettings::save() const
     s.setValue("camera/rotation", monitorRotation);
     s.setValue("guides/enabled", guidesEnabled);
     s.setValue("record/countdown", countdownSeconds);
+    s.setValue("record/audio", recordAudio);
 }
 
 } // namespace otl

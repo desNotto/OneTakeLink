@@ -33,6 +33,17 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   AMF/x264) would belong to an export layer — decided NOT to build (stage 4
   dropped): takes always go to a video editor in full frame; the format frame
   and safe zones are monitor guides only.
+- Optional audio (setting `record/audio`): sources deliver 48 kHz stereo
+  S16LE PCM as `AudioChunk` (LensLink packet type 10 — only while the phone
+  has "Send phone mic to OBS" on, no remote switch; scrcpy `audio=true
+  audio_codec=raw audio_source=mic-camcorder` on a 2nd socket read by its own
+  thread). Audio and video pts share the phone clock. `Recorder` buffers ~12 s
+  for the pre-roll, adds an AAC track (FFmpeg `aac`, 192 kbit/s) only if audio
+  is arriving at REC, aligns by pts (silence for gaps, trims overlaps) and
+  `Mp4Writer` drops the encoder's 1024-sample priming (edit lists don't
+  survive the remux). Fakes emit a 50 ms beep at every whole second to check
+  sync: `fake_phone.py --audio`, `fake_adb.py` with audio, `otl-cli record ... --audio`.
+  The built-in player is silent (no Qt Multimedia).
 - Takes start at the last keyframe before REC (LensLink sends a keyframe every
   2–4 s and ignores keyframe requests).
 - LensLink protocol: the phone listens on TCP 9979; we dial (USB via usbmuxd

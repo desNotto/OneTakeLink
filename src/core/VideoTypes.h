@@ -7,6 +7,7 @@
 #include <QMetaType>
 #include <QString>
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -51,11 +52,23 @@ FramePtr makeFramePtr(AVFrame *frameTakeOwnership);
 
 // Receives the encoded stream (recording passthrough). Called on the
 // source's worker thread: implementations must return quickly.
+// Uncompressed audio from the phone's microphone: interleaved signed
+// 16-bit samples. ptsNs is the capture time of the first sample, on the
+// same clock as the video packets' ptsNs.
+struct AudioChunk {
+    std::shared_ptr<const std::vector<int16_t>> samples;
+    int sampleRate = 48000;
+    int channels = 2;
+    int64_t ptsNs = 0;
+    int frames() const { return samples ? int(samples->size()) / std::max(1, channels) : 0; }
+};
+
 class EncodedPacketSink {
 public:
     virtual ~EncodedPacketSink() = default;
     virtual void onStreamFormat(const StreamFormat &format) = 0;
     virtual void onPacket(const EncodedPacket &packet) = 0;
+    virtual void onAudio(const AudioChunk &) {}
     virtual void onStreamLost(const QString &reason) = 0;
 };
 
@@ -81,6 +94,9 @@ struct StreamStats {
     uint64_t framesMissing = 0; // gaps in the capture timestamps
     double latencyMs = -1;      // capture -> decoded, if clocks are synced
     QString decoder;            // "d3d11va", "software", ...
+    bool audio = false;         // microphone audio arrived in this window
+    int audioSampleRate = 0;
+    int audioChannels = 0;
 };
 
 } // namespace otl

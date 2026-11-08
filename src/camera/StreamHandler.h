@@ -10,6 +10,7 @@
 
 #include "core/VideoTypes.h"
 
+#include <atomic>
 #include <memory>
 
 namespace otl {
@@ -35,6 +36,10 @@ public:
     // One complete Annex B access unit. Returns true for the first frame
     // of the stream (the source can report "streaming").
     bool onAccessUnit(const uint8_t *data, size_t size, int64_t ptsNs, bool keyframe);
+
+    // Interleaved little-endian 16-bit PCM from the phone microphone; ptsNs
+    // on the video clock. Thread-safe (Android reads audio on its own thread).
+    void onAudio(const uint8_t *pcm, size_t bytes, int sampleRate, int channels, int64_t ptsNs);
 
     // Bytes received from the transport (for the bitrate figure).
     void addTransportBytes(uint64_t bytes) { m_winBytes += bytes; }
@@ -73,6 +78,9 @@ private:
     uint64_t m_windowStartNs = 0;
     uint64_t m_winPackets = 0, m_winFrames = 0, m_winBytes = 0;
     uint64_t m_totalPackets = 0, m_missing = 0;
+    std::atomic<uint64_t> m_winAudioFrames{0};
+    std::atomic<int> m_audioRate{0};
+    std::atomic<int> m_audioChannels{0};
     int64_t m_lastPts = -1;
 };
 

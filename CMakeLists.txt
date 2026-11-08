@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(OneTakeLink VERSION 1.0.0 LANGUAGES C CXX)
+project(OneTakeLink VERSION 1.1.0 LANGUAGES C CXX)
 
 # Must match the scrcpy-server bundled for Android (see build.yml).
 set(OTL_SCRCPY_VERSION "5.0.1")

@@ -28,6 +28,7 @@ struct AndroidOptions {
     int bitrateMbps = 20;
     QString codec = QStringLiteral("h264"); // h264 | h265
     bool hardwareDecode = true;
+    bool audio = false; // phone microphone (camcorder profile), raw PCM 48 kHz stereo
 };
 
 class AndroidSource final : public CameraSource {
