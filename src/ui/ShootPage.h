@@ -132,6 +132,7 @@ private:
     QComboBox *m_countdownCombo = nullptr;
     QPushButton *m_recButton = nullptr;
     QLabel *m_durationLabel = nullptr;
+    QLabel *m_savedLabel = nullptr;
     QLabel *m_diskLabel = nullptr;
 
     QTimer m_diskTimer;

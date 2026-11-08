@@ -65,6 +65,29 @@ double aspectValue(const QString &key)
 
 const char *kManualIpKey = "wifi-manual";
 
+// File names have no spaces, so a word-wrapping label can't break them and
+// would force the whole side panel wider. Allow breaks after '_' and '-'.
+QString breakable(const QString &name)
+{
+    QString out;
+    for (QChar c : name) {
+        out += c;
+        if (c == QLatin1Char('_') || c == QLatin1Char('-'))
+            out += QChar(0x200B); // zero-width space
+    }
+    return out;
+}
+
+// Labels in the fixed-width side panel take the width they are given and
+// never widen the panel (long text wraps or is clipped instead).
+void fitPanel(QLabel *l)
+{
+    QSizePolicy sp = l->sizePolicy();
+    sp.setHorizontalPolicy(QSizePolicy::Ignored);
+    l->setSizePolicy(sp);
+    l->setMinimumWidth(0);
+}
+
 // Scrolling the side panel must not change a combo box or slider the
 // cursor happens to pass over (e.g. the iPhone's format or zoom): the
 // wheel only adjusts a control after it was clicked; otherwise it
@@ -109,6 +132,15 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
     layout->setSpacing(0);
     layout->addWidget(m_preview, 1);
     layout->addWidget(buildPanel());
+
+    for (QLabel *l : {m_statusLabel, m_hintLabel, m_folderLabel, m_nextNameLabel, m_durationLabel,
+                      m_savedLabel, m_diskLabel, m_infoDevice, m_infoResolution, m_infoFps, m_infoCodec,
+                      m_infoBitrate, m_infoMissing, m_infoLatency, m_infoDecoder})
+        fitPanel(l);
+    for (QComboBox *c : m_panel->widget()->findChildren<QComboBox *>()) {
+        c->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        c->setMinimumContentsLength(8);
+    }
 
     auto *guard = new WheelGuard(m_panel->viewport(), this);
     const auto guarded = m_panel->widget()->findChildren<QWidget *>();
@@ -425,6 +457,12 @@ QGroupBox *ShootPage::buildRecordGroup()
     m_durationLabel->setObjectName(QStringLiteral("durationLabel"));
     v->addWidget(m_durationLabel);
 
+    m_savedLabel = new QLabel;
+    m_savedLabel->setWordWrap(true);
+    m_savedLabel->setObjectName(QStringLiteral("hintLabel"));
+    m_savedLabel->setVisible(false);
+    v->addWidget(m_savedLabel);
+
     m_diskLabel = new QLabel;
     m_diskLabel->setObjectName(QStringLiteral("hintLabel"));
     v->addWidget(m_diskLabel);
@@ -722,7 +760,8 @@ void ShootPage::startRecordingNow()
         return;
     }
     m_currentTake = path;
-    m_nextNameLabel->setText(tr("Записывается: %1").arg(QFileInfo(path).fileName()));
+    m_savedLabel->setVisible(false);
+    m_nextNameLabel->setText(tr("Записывается: %1").arg(breakable(QFileInfo(path).fileName())));
 }
 
 void ShootPage::stopRecordingAndWait()
@@ -753,7 +792,7 @@ void ShootPage::onRecorderState(Recorder::State state)
         m_recButton->setProperty("recording", true);
         m_preview->setRecording(true, QStringLiteral("REC …"));
         m_recSummary = tr("Начинаем запись…");
-        m_nextNameLabel->setText(tr("Записывается: %1").arg(QFileInfo(m_currentTake).fileName()));
+        m_nextNameLabel->setText(tr("Записывается: %1").arg(breakable(QFileInfo(m_currentTake).fileName())));
         break;
     case Recorder::State::Recording:
         m_recButton->setText(tr("■ STOP  (Space)"));
@@ -784,7 +823,10 @@ void ShootPage::onRecordProgress(qint64 durationMs, qint64 bytes)
 
 void ShootPage::onTakeFinished(const QString &path, qint64 durationMs, const QString &warning)
 {
-    m_durationLabel->setText(tr("Сохранено: %1 (%2)").arg(QFileInfo(path).fileName(), formatDuration(durationMs)));
+    m_durationLabel->setText(formatDuration(durationMs));
+    m_savedLabel->setText(tr("✓ Сохранено: %1").arg(breakable(QFileInfo(path).fileName())));
+    m_savedLabel->setToolTip(QDir::toNativeSeparators(path));
+    m_savedLabel->setVisible(true);
     emit takeSaved(path);
     if (!warning.isEmpty())
         QMessageBox::warning(this, tr("Запись прервана"), warning + QStringLiteral("\n\n") + QDir::toNativeSeparators(path));
@@ -822,7 +864,7 @@ void ShootPage::updateNextName()
     namer.root = m_settings->rootFolder;
     namer.project = m_settings->project;
     namer.pattern = m_settings->namePattern;
-    m_nextNameLabel->setText(tr("Следующий дубль: %1").arg(QFileInfo(namer.nextTakePath()).fileName()));
+    m_nextNameLabel->setText(tr("Следующий дубль: %1").arg(breakable(QFileInfo(namer.nextTakePath()).fileName())));
 }
 
 void ShootPage::updateDiskInfo()
