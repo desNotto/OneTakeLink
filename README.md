@@ -9,7 +9,7 @@
 OneTakeLink — приложение для Windows 10/11 x64: приём видео с камеры iPhone
 (через приложение **LensLink Camera**) или Android-телефона (через USB-отладку,
 без установки приложений), мониторинг, запись в MP4, медиатека записей со
-встроенным плеером. Интерфейс на русском и английском. Версия: **0.3**.
+встроенным плеером. Интерфейс на русском и английском. Версия: **1.0.0**.
 
 ### Функции
 
@@ -64,10 +64,16 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 
 ### Установка и запуск
 
-1. Скачать архив `OneTakeLink-windows-x64`: GitHub → Actions → последний успешный запуск «Build» → Artifacts.
-2. Распаковать, запустить `OneTakeLink.exe`. Установка не требуется.
-3. iPhone: открыть LensLink Camera. Android: подключить кабелем с включённой отладкой по USB.
-4. Выбрать устройство в панели «Источник», нажать «Подключить».
+1. Скачать со страницы [Releases](https://github.com/desNotto/onetakelink/releases/latest):
+   - `OneTakeLink-<версия>-setup-windows-x64.exe` — установщик: для всех пользователей или только для себя (без прав администратора), ярлыки, правило брандмауэра для Wi-Fi-подключения iPhone;
+   - или `OneTakeLink-<версия>-windows-x64.zip` — портативная версия: распаковать и запустить `OneTakeLink.exe`.
+2. Файлы не подписаны цифровой подписью: Windows SmartScreen может показать предупреждение — «Подробнее» → «Выполнить в любом случае».
+4. iPhone: открыть LensLink Camera. Android: подключить кабелем с включённой отладкой по USB.
+5. Выбрать устройство в панели «Источник», нажать «Подключить».
+
+Удаление (Параметры Windows → Приложения) стирает программу, настройки, кэш миниатюр, журналы и правило брандмауэра. Записанные дубли не удаляются.
+
+Сборки разработки (каждое изменение): GitHub → Actions → последний успешный запуск «Build» → Artifacts.
 
 ### Горячие клавиши
 
@@ -120,7 +126,8 @@ otl-cli recover "D:\Video"           :: восстановить прерван�
 | 4. Кадрирование и экспорт | не требуется: дубли идут в программу монтажа в полном кадре |
 | — Android (scrcpy), безопасные зоны Reels / Shorts, интерфейс RU/EN, поворот кадра | готово |
 | 5. Ручные ISO/выдержка, окно настроек | в планах |
-| 6. Проверка совместимости, установщик | в планах |
+| 6. Установщик | готово |
+| 6. Проверка совместимости на разных ПК и телефонах | в процессе |
 
 ### Сборка из исходников
 
@@ -151,7 +158,7 @@ OneTakeLink is a Windows 10/11 x64 application that receives video from an
 iPhone camera (via the **LensLink Camera** app) or an Android phone (over USB
 debugging, nothing installed on the phone), monitors it, records it to MP4 and
 manages the recordings in a media library with a built-in player. Russian and
-English interface. Version: **0.3**.
+English interface. Version: **1.0.0**.
 
 ### Features
 
@@ -206,10 +213,16 @@ English interface. Version: **0.3**.
 
 ### Installation and start
 
-1. Download `OneTakeLink-windows-x64`: GitHub → Actions → latest successful "Build" run → Artifacts.
-2. Unpack and run `OneTakeLink.exe`. No installation needed.
+1. Download from [Releases](https://github.com/desNotto/onetakelink/releases/latest):
+   - `OneTakeLink-<version>-setup-windows-x64.exe` — installer: for all users or just for you (no admin rights), shortcuts, firewall rule for iPhone Wi-Fi connection;
+   - or `OneTakeLink-<version>-windows-x64.zip` — portable: unpack and run `OneTakeLink.exe`.
+2. The files are not code-signed: Windows SmartScreen may warn — "More info" → "Run anyway".
 3. iPhone: open LensLink Camera. Android: connect the cable with USB debugging on.
 4. Pick the device in the Source panel and click Connect.
+
+Uninstalling (Windows Settings → Apps) removes the program, settings, thumbnail cache, logs and the firewall rule. Recorded takes are not deleted.
+
+Development builds (every change): GitHub → Actions → latest successful "Build" run → Artifacts.
 
 ### Keyboard shortcuts
 
@@ -262,7 +275,8 @@ otl-cli recover "D:\Video"           :: recover interrupted recordings
 | 4. Cropping and export | not needed: takes go to a video editor in full frame |
 | — Android (scrcpy), Reels / Shorts safe zones, RU/EN interface, frame rotation | done |
 | 5. Manual ISO/shutter, settings window | planned |
-| 6. Compatibility testing, installer | planned |
+| 6. Installer | done |
+| 6. Compatibility testing on different PCs and phones | in progress |
 
 ### Building from source
 

@@ -97,10 +97,27 @@ jobs:
           }
           Copy-Item LICENSE, README.md, THIRD_PARTY_NOTICES.md $dist
           $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(OneTakeLink VERSION ([0-9.]+)').Matches[0].Groups[1].Value
-          $sha = "${{ github.sha }}".Substring(0, 7)
-          $zip = "OneTakeLink-$ver-$sha-windows-x64.zip"
+          if ("${{ github.ref }}".StartsWith("refs/tags/v")) {
+            # Release builds: the tag must match the version in CMakeLists.txt.
+            if ("${{ github.ref_name }}" -ne "v$ver") { throw "Tag ${{ github.ref_name }} does not match version $ver" }
+            $zip = "OneTakeLink-$ver-windows-x64.zip"
+          } else {
+            $sha = "${{ github.sha }}".Substring(0, 7)
+            $zip = "OneTakeLink-$ver-$sha-windows-x64.zip"
+          }
           Compress-Archive -Path $dist -DestinationPath "dist\$zip"
           "ZIP_NAME=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found" }
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DSourceDir=$PWD\dist\OneTakeLink" "/DOutputDir=$PWD\dist" packaging\windows\onetakelink.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with $LASTEXITCODE" }
+          "SETUP_NAME=OneTakeLink-$env:APP_VERSION-setup-windows-x64.exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Upload build
         uses: actions/upload-artifact@v4
@@ -109,11 +126,22 @@ jobs:
           path: dist/OneTakeLink
           retention-days: 30
 
-      - name: Attach to release
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneTakeLink-setup-windows-x64
+          path: dist/${{ env.SETUP_NAME }}
+          retention-days: 30
+
+      - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/${{ env.ZIP_NAME }}
+          name: OneTakeLink ${{ env.APP_VERSION }}
+          body_path: docs/release-notes/${{ github.ref_name }}.md
+          files: |
+            dist/${{ env.SETUP_NAME }}
+            dist/${{ env.ZIP_NAME }}
 
   linux:
     # Compile + unit-test check only; the product targets Windows.

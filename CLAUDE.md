@@ -86,5 +86,10 @@ OTL_ADB=$PWD/tools/fake_adb.py OTL_SCRCPY_SERVER=/etc/hostname ./build/otl-cli r
 GUI on a virtual display: `Xvfb :99 &` then
 `DISPLAY=:99 ./build/OneTakeLink --connect=wifi:127.0.0.1`.
 Windows builds come from `.github/workflows/build.yml` (Qt 6.8.3 MSVC,
-FFmpeg 7.1.1 gyan.dev shared). Don't include `windows.h`/`winsock2.h` inside
+FFmpeg 7.1.1 gyan.dev shared): portable zip + Inno Setup installer
+(`packaging/windows/onetakelink.iss`, UTF-8 with BOM, fixed AppId — never
+change it). Releasing: bump `project(... VERSION x.y.z)`, add
+`docs/release-notes/vx.y.z.md`, push a `vx.y.z` tag — CI checks the tag
+matches and publishes a GitHub release with both files. The .exe version
+resource is generated from `packaging/windows/onetakelink.rc.in`. Don't include `windows.h`/`winsock2.h` inside
 `extern "C"` blocks.

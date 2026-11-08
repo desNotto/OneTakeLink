@@ -14,6 +14,7 @@
 #include <QIcon>
 #include <QLibraryInfo>
 #include <QLocale>
+#include <QSettings>
 #include <QTranslator>
 #include <QSurfaceFormat>
 
@@ -29,6 +30,16 @@ int main(int argc, char *argv[])
     // UI language: the source strings are Russian; English comes from
     // the embedded translation. "auto" follows the system language.
     QString lang = otl::AppSettings::load().language;
+#ifdef Q_OS_WIN
+    // Not chosen in the app yet: use the installer's language.
+    if (lang != QLatin1String("ru") && lang != QLatin1String("en")) {
+        const QSettings installer(QStringLiteral("HKEY_CURRENT_USER\\Software\\OneTakeLink\\Installer"),
+                                  QSettings::NativeFormat);
+        const QString fromInstaller = installer.value(QStringLiteral("Language")).toString();
+        if (fromInstaller == QLatin1String("ru") || fromInstaller == QLatin1String("en"))
+            lang = fromInstaller;
+    }
+#endif
     if (lang != QLatin1String("ru") && lang != QLatin1String("en")) {
         const QLocale::Language sys = QLocale::system().language();
         lang = (sys == QLocale::Russian || sys == QLocale::Ukrainian || sys == QLocale::Belarusian ||

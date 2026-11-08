@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(OneTakeLink VERSION 0.3.0 LANGUAGES C CXX)
+project(OneTakeLink VERSION 1.0.0 LANGUAGES C CXX)
 
 # Must match the scrcpy-server bundled for Android (see build.yml).
 set(OTL_SCRCPY_VERSION "5.0.1")
@@ -99,7 +99,10 @@ set(APP_SOURCES
     src/ui/Style.cpp
 )
 if(WIN32)
-    list(APPEND APP_SOURCES packaging/windows/onetakelink.rc)
+    # Version info and icon of the .exe, versioned from project().
+    file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon/onetakelink.ico" OTL_ICON_PATH)
+    configure_file(packaging/windows/onetakelink.rc.in "${CMAKE_CURRENT_BINARY_DIR}/generated/onetakelink.rc" @ONLY)
+    list(APPEND APP_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/generated/onetakelink.rc")
 endif()
 
 qt_add_executable(OneTakeLink WIN32 ${APP_SOURCES})
