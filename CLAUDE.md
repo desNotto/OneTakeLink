@@ -97,7 +97,9 @@ Windows builds come from `.github/workflows/build.yml` (Qt 6.8.3 MSVC,
 FFmpeg 7.1.1 gyan.dev shared): portable zip + Inno Setup installer
 (`packaging/windows/onetakelink.iss`, UTF-8 with BOM, fixed AppId — never
 change it). Releasing: bump `project(... VERSION x.y.z)`, add
-`docs/release-notes/vx.y.z.md`, push a `vx.y.z` tag — CI checks the tag
-matches and publishes a GitHub release with both files. The .exe version
+`docs/release-notes/vx.y.z.md`, then push the commit to the `release` branch
+(`git push origin HEAD:release`; cloud sessions cannot push tags), run the
+workflow manually with "publish", or push a `vx.y.z` tag. CI creates tag
+`vx.y.z` and a GitHub release with the installer and the portable zip. The .exe version
 resource is generated from `packaging/windows/onetakelink.rc.in`. Don't include `windows.h`/`winsock2.h` inside
 `extern "C"` blocks.

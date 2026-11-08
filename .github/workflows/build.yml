@@ -2,15 +2,23 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    # Pushing the `release` branch (or a vX.Y.Z tag) publishes a GitHub
+    # release for the version in CMakeLists.txt.
+    branches: [main, release]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish a GitHub release for the version in CMakeLists.txt'
+        type: boolean
+        default: false
 
 permissions:
   contents: write # attach the zip to a release when a v* tag is pushed
 
 env:
+  PUBLISH: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/release' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
   QT_VERSION: '6.8.3'
   FFMPEG_VERSION: '7.1.1'
   # Must match OTL_SCRCPY_VERSION in CMakeLists.txt (client/server versions must be equal).
@@ -97,9 +105,11 @@ jobs:
           }
           Copy-Item LICENSE, README.md, THIRD_PARTY_NOTICES.md $dist
           $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(OneTakeLink VERSION ([0-9.]+)').Matches[0].Groups[1].Value
-          if ("${{ github.ref }}".StartsWith("refs/tags/v")) {
-            # Release builds: the tag must match the version in CMakeLists.txt.
-            if ("${{ github.ref_name }}" -ne "v$ver") { throw "Tag ${{ github.ref_name }} does not match version $ver" }
+          if ("${{ github.ref }}".StartsWith("refs/tags/v") -and "${{ github.ref_name }}" -ne "v$ver") {
+            throw "Tag ${{ github.ref_name }} does not match version $ver in CMakeLists.txt"
+          }
+          if ($env:PUBLISH -eq 'true') {
+            if (-not (Test-Path "docs/release-notes/v$ver.md")) { throw "docs/release-notes/v$ver.md is missing" }
             $zip = "OneTakeLink-$ver-windows-x64.zip"
           } else {
             $sha = "${{ github.sha }}".Substring(0, 7)
@@ -134,11 +144,14 @@ jobs:
           retention-days: 30
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.PUBLISH == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          # Creates the tag on this commit if it doesn't exist yet.
+          tag_name: v${{ env.APP_VERSION }}
+          target_commitish: ${{ github.sha }}
           name: OneTakeLink ${{ env.APP_VERSION }}
-          body_path: docs/release-notes/${{ github.ref_name }}.md
+          body_path: docs/release-notes/v${{ env.APP_VERSION }}.md
           files: |
             dist/${{ env.SETUP_NAME }}
             dist/${{ env.ZIP_NAME }}
