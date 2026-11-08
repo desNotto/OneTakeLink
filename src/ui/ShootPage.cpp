@@ -286,43 +286,63 @@ QWidget *ShootPage::buildFormatBar()
     m_aspectCombo->setToolTip(tr("Формат кадра: рамка будущего кадрирования на мониторе. "
                                  "Записывается всегда полный кадр."));
 
-    m_socialCombo = new QComboBox;
-    m_socialCombo->addItem(tr("Без гайдлайнов"), QStringLiteral("none"));
-    m_socialCombo->addItem(QStringLiteral("Instagram Reels"), QStringLiteral("reels"));
-    m_socialCombo->addItem(QStringLiteral("YouTube Shorts"), QStringLiteral("shorts"));
-    m_socialCombo->setCurrentIndex(std::max(0, m_socialCombo->findData(m_settings->socialGuide)));
-    m_socialCombo->setToolTip(tr("Безопасные зоны для вертикального видео 9:16.\n"
-                                 "Красные и оранжевые — там интерфейс приложения (ник, подпись, кнопки) "
-                                 "перекрывает видео.\nЗелёная — место для лиц, текста и логотипов.\n"
+    // Platform safe zones: two toggles, at most one on. Clicking the lit
+    // one turns zones off; clicking the other switches platforms.
+    auto toggle = [this](const QIcon &icon, const QString &tip) {
+        auto *b = new QToolButton;
+        b->setObjectName(QStringLiteral("topToggle"));
+        b->setIcon(icon);
+        b->setIconSize(QSize(22, 22));
+        b->setCheckable(true);
+        b->setFocusPolicy(Qt::NoFocus);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setToolTip(tip);
+        return b;
+    };
+    const QString zonesNote = tr("Красные и оранжевые зоны — там интерфейс приложения (ник, подпись, кнопки) "
+                                 "перекрывает видео. Зелёная — место для лиц, текста и логотипов.\n"
                                  "Зоны приблизительные: по рекомендациям Meta и Google для 1080×1920, "
-                                 "интерфейс приложений со временем меняется."));
+                                 "интерфейс приложений со временем меняется.");
+    m_reelsButton = toggle(icons::instagramMark(), tr("Безопасные зоны Instagram Reels (кадр 9:16)") +
+                                                       QStringLiteral("\n") + zonesNote);
+    m_shortsButton = toggle(icons::youtubeMark(), tr("Безопасные зоны YouTube Shorts (кадр 9:16)") +
+                                                      QStringLiteral("\n") + zonesNote);
+    m_guidesButton = toggle(icons::thirdsGrid(), tr("Направляющие: сетка третей (G)"));
+    m_reelsButton->setChecked(m_settings->socialGuide == QLatin1String("reels"));
+    m_shortsButton->setChecked(m_settings->socialGuide == QLatin1String("shorts"));
+    m_guidesButton->setChecked(m_settings->guideThirds);
 
     auto *formatLabel = new QLabel(tr("Формат"));
     formatLabel->setObjectName(QStringLiteral("topLabel"));
-    auto *guideLabel = new QLabel(tr("Гайдлайны"));
-    guideLabel->setObjectName(QStringLiteral("topLabel"));
     h->addWidget(formatLabel);
     h->addWidget(m_aspectCombo);
-    h->addSpacing(12);
-    h->addWidget(guideLabel);
-    h->addWidget(m_socialCombo);
+    h->addSpacing(10);
+    h->addWidget(m_reelsButton);
+    h->addWidget(m_shortsButton);
+    h->addSpacing(4);
+    h->addWidget(m_guidesButton);
 
     connect(m_aspectCombo, &QComboBox::currentIndexChanged, this, [this] {
         // Platform zones only make sense for 9:16.
-        if (m_aspectCombo->currentData().toString() != QLatin1String("9:16") &&
-            m_socialCombo->currentData().toString() != QLatin1String("none")) {
-            const QSignalBlocker block(m_socialCombo);
-            m_socialCombo->setCurrentIndex(0);
+        if (m_aspectCombo->currentData().toString() != QLatin1String("9:16")) {
+            m_reelsButton->setChecked(false);
+            m_shortsButton->setChecked(false);
         }
         updateGuides();
     });
-    connect(m_socialCombo, &QComboBox::currentIndexChanged, this, [this] {
-        if (m_socialCombo->currentData().toString() != QLatin1String("none")) {
-            const QSignalBlocker block(m_aspectCombo);
-            m_aspectCombo->setCurrentIndex(m_aspectCombo->findData(QStringLiteral("9:16")));
+    auto platformClicked = [this](QToolButton *self, QToolButton *other) {
+        if (self->isChecked()) {
+            other->setChecked(false);
+            if (m_aspectCombo->currentData().toString() != QLatin1String("9:16")) {
+                const QSignalBlocker block(m_aspectCombo);
+                m_aspectCombo->setCurrentIndex(m_aspectCombo->findData(QStringLiteral("9:16")));
+            }
         }
         updateGuides();
-    });
+    };
+    connect(m_reelsButton, &QToolButton::clicked, this, [this, platformClicked] { platformClicked(m_reelsButton, m_shortsButton); });
+    connect(m_shortsButton, &QToolButton::clicked, this, [this, platformClicked] { platformClicked(m_shortsButton, m_reelsButton); });
+    connect(m_guidesButton, &QToolButton::clicked, this, &ShootPage::updateGuides);
     return m_formatBar;
 }
 
@@ -342,7 +362,6 @@ QWidget *ShootPage::buildPanel()
     v->addWidget(buildStreamGroup());
     v->addWidget(buildCameraGroup());
     v->addWidget(buildAndroidGroup());
-    v->addWidget(buildFrameGroup());
     v->addStretch(1);
 
     m_panel = new QScrollArea;
@@ -557,43 +576,6 @@ QGroupBox *ShootPage::buildAndroidGroup()
     }
     m_androidGroup->setVisible(false);
     return m_androidGroup;
-}
-
-QGroupBox *ShootPage::buildFrameGroup()
-{
-    auto *g = new QGroupBox(tr("Кадр и направляющие"));
-    auto *v = new QVBoxLayout(g);
-
-    auto *f = new QFormLayout;
-    m_cropPos = new QSlider(Qt::Horizontal);
-    m_cropPos->setRange(0, 100);
-    m_cropPos->setValue(50);
-    f->addRow(tr("Положение кадра"), m_cropPos);
-    v->addLayout(f);
-
-    auto *note = new QLabel(tr("Записывается полный кадр. Рамка показывает будущее кадрирование "
-                               "при экспорте; в файл она не попадает."));
-    note->setWordWrap(true);
-    note->setObjectName(QStringLiteral("hintLabel"));
-    v->addWidget(note);
-
-    m_guidesEnabled = new QCheckBox(tr("Показывать направляющие (G)"));
-    m_guidesEnabled->setChecked(m_settings->guidesEnabled);
-    m_thirds = new QCheckBox(tr("Сетка третей"));
-    m_thirds->setChecked(m_settings->guideThirds);
-    m_center = new QCheckBox(tr("Центральные линии"));
-    m_center->setChecked(m_settings->guideCenter);
-    m_safe = new QCheckBox(tr("Безопасная зона 90 %"));
-    m_safe->setChecked(m_settings->guideSafe);
-    v->addWidget(m_guidesEnabled);
-    v->addWidget(m_thirds);
-    v->addWidget(m_center);
-    v->addWidget(m_safe);
-
-    for (QCheckBox *b : {m_guidesEnabled, m_thirds, m_center, m_safe})
-        connect(b, &QCheckBox::toggled, this, &ShootPage::updateGuides);
-    connect(m_cropPos, &QSlider::valueChanged, this, &ShootPage::updateGuides);
-    return g;
 }
 
 QGroupBox *ShootPage::buildRecordGroup()
@@ -934,27 +916,28 @@ void ShootPage::sendCommand(const QJsonObject &cmd)
 void ShootPage::updateGuides()
 {
     GuideSettings g;
-    g.enabled = m_guidesEnabled->isChecked();
-    g.thirds = m_thirds->isChecked();
-    g.center = m_center->isChecked();
-    g.safeArea = m_safe->isChecked();
+    g.enabled = true;
+    g.thirds = m_guidesButton->isChecked();
     const QString aspect = m_aspectCombo->currentData().toString();
-    const QString social = m_socialCombo->currentData().toString();
+    g.cropAspect = aspectValue(aspect);
+    const QString social = m_reelsButton->isChecked()    ? QStringLiteral("reels")
+                           : m_shortsButton->isChecked() ? QStringLiteral("shorts")
+                                                         : QStringLiteral("none");
     g.social = social == QLatin1String("reels")    ? SocialGuide::InstagramReels
                : social == QLatin1String("shorts") ? SocialGuide::YouTubeShorts
                                                    : SocialGuide::None;
-    m_settings->socialGuide = social;
-    g.cropAspect = aspectValue(aspect);
-    g.cropCenterX = m_cropPos->value() / 100.0;
-    m_cropPos->setEnabled(g.cropAspect > 0);
     m_preview->setGuides(g);
 
-    m_settings->guidesEnabled = g.enabled;
+    m_settings->socialGuide = social;
     m_settings->guideThirds = g.thirds;
-    m_settings->guideCenter = g.center;
-    m_settings->guideSafe = g.safeArea;
     m_settings->cropAspect = aspect;
     m_settings->save();
+}
+
+void ShootPage::toggleGuides()
+{
+    m_guidesButton->toggle();
+    updateGuides();
 }
 
 // ----------------------------------------------------------- recording

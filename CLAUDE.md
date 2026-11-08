@@ -30,7 +30,9 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   into MP4 as-is (no re-encode). Written as fragmented MP4 `*.recording.mp4`
   (0.5 s fragments), remuxed to a regular faststart MP4 on stop; leftovers are
   repaired at startup (`Recorder::recoverInterrupted`). Re-encoding (NVENC/QSV/
-  AMF/x264) belongs to the Export layer (stage 4).
+  AMF/x264) would belong to an export layer — decided NOT to build (stage 4
+  dropped): takes always go to a video editor in full frame; the format frame
+  and safe zones are monitor guides only.
 - Takes start at the last keyframe before REC (LensLink sends a keyframe every
   2–4 s and ignores keyframe requests).
 - LensLink protocol: the phone listens on TCP 9979; we dial (USB via usbmuxd
@@ -52,15 +54,17 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   entries in the .ts, run it again and commit .ts + .qm. Language: settings
   `ui/language` (auto/ru/en), applied at startup; switching restarts the app.
 - Social safe zones (Reels/Shorts) are approximations in `PreviewWidget.cpp`
-  (`layoutFor`), drawn only inside a 9:16 crop frame.
+  (`layoutFor`), drawn only inside a 9:16 crop frame. Top bar: format combo,
+  Instagram/YouTube logo toggles (mutually exclusive, click again = off;
+  turning one on forces 9:16), thirds-grid toggle (G). Icons are drawn in
+  `src/ui/Icons.cpp` in the brand line style.
 - Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`;
   R / Shift+R rotate / reset the monitor.
 - Monitor rotation (setting `camera/rotation`, clockwise) is written into takes
   as the MP4 display matrix (`av_display_rotation_set` takes a CLOCKWISE angle,
   `av_display_rotation_get` returns counter-clockwise; ffprobe shows -90 for a
   90° cw take, like portrait iPhone video). Player, thumbnails and MediaProbe
-  apply it (`displayRotationCw`); crop/guides are in display space, so export
-  must rotate before cropping.
+  apply it (`displayRotationCw`); crop/guides are in display space.
 - Media pool = one QStandardItemModel + TakeFilterModel proxy shown by a
   thumbnail QListView and a detail QTreeView sharing one selection model.
 - No telemetry, no network except the phone link.

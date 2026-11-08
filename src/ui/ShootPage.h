@@ -47,6 +47,7 @@ public:
     void connectTo(const QString &deviceKey); // e.g. "usb:" or "wifi:192.168.1.5"
     void rotateClockwise();   // +90°, also written into new takes
     void resetRotation();     // back to the camera's own orientation
+    void toggleGuides();      // rule-of-thirds grid on the monitor (G)
     QString sessionFolderHint() const;
     QWidget *monitorWidget() const;
     QWidget *inspectorWidget() const;
@@ -69,7 +70,6 @@ private:
     void updateSourceGroups();
     void applyAndroidOptions(bool restartIfRunning);
     void watchSource(CameraSource *source);
-    QGroupBox *buildFrameGroup();
     QGroupBox *buildRecordGroup();
 
     void refreshDevices();
@@ -144,15 +144,12 @@ private:
     QComboBox *m_androidBitrate = nullptr;
     QComboBox *m_androidCodec = nullptr;
 
-    // Frame group
+    // Top bar: format, platform safe zones, guides
     QWidget *m_formatBar = nullptr;
     QComboBox *m_aspectCombo = nullptr;
-    QComboBox *m_socialCombo = nullptr;
-    QSlider *m_cropPos = nullptr;
-    QCheckBox *m_guidesEnabled = nullptr;
-    QCheckBox *m_thirds = nullptr;
-    QCheckBox *m_center = nullptr;
-    QCheckBox *m_safe = nullptr;
+    QToolButton *m_reelsButton = nullptr;
+    QToolButton *m_shortsButton = nullptr;
+    QToolButton *m_guidesButton = nullptr;
 
     // Record group
     QLabel *m_folderLabel = nullptr;

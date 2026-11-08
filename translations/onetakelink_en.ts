@@ -296,7 +296,7 @@
     <name>otl::MainWindow</name>
     <message>
         <location filename="../src/ui/MainWindow.cpp" line="58"/>
-        <location filename="../src/ui/MainWindow.cpp" line="297"/>
+        <location filename="../src/ui/MainWindow.cpp" line="298"/>
         <source>Язык интерфейса</source>
         <translation>Interface language</translation>
     </message>
@@ -322,12 +322,12 @@
         <translation>Camera · %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="253"/>
+        <location filename="../src/ui/MainWindow.cpp" line="254"/>
         <source>Восстановлены записи</source>
         <translation>Recordings recovered</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="254"/>
+        <location filename="../src/ui/MainWindow.cpp" line="255"/>
         <source>Найдены дубли, прерванные аварийным завершением программы или отключением питания. Они восстановлены:
 
 %1</source>
@@ -336,33 +336,33 @@
 %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="265"/>
-        <location filename="../src/ui/MainWindow.cpp" line="291"/>
+        <location filename="../src/ui/MainWindow.cpp" line="266"/>
+        <location filename="../src/ui/MainWindow.cpp" line="292"/>
         <source>Идёт запись</source>
         <translation>Recording in progress</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="265"/>
+        <location filename="../src/ui/MainWindow.cpp" line="266"/>
         <source>Остановить запись, сохранить дубль и выйти?</source>
         <translation>Stop recording, save the take and quit?</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="291"/>
+        <location filename="../src/ui/MainWindow.cpp" line="292"/>
         <source>Язык можно сменить после остановки записи.</source>
         <translation>The language can be changed after recording stops.</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="298"/>
+        <location filename="../src/ui/MainWindow.cpp" line="299"/>
         <source>Язык изменится после перезапуска программы. Перезапустить сейчас?</source>
         <translation>The language changes after restarting the program. Restart now?</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="308"/>
+        <location filename="../src/ui/MainWindow.cpp" line="309"/>
         <source>О программе OneTakeLink</source>
         <translation>About OneTakeLink</translation>
     </message>
     <message>
-        <location filename="../src/ui/MainWindow.cpp" line="309"/>
+        <location filename="../src/ui/MainWindow.cpp" line="310"/>
         <source>&lt;h3&gt;OneTakeLink %1&lt;/h3&gt;&lt;p&gt;Запись видео с камеры iPhone или Android-телефона на Windows: мониторинг, запись в MP4, медиатека.&lt;br&gt;Без рекламы, подписок, водяных знаков и регистрации. Работает без интернета.&lt;/p&gt;&lt;p&gt;Автор: desNotto&lt;/p&gt;&lt;p&gt;iPhone: официальное приложение &lt;b&gt;LensLink Camera&lt;/b&gt; (App Store); модуль подключения основан на коде &lt;a href=&apos;https://github.com/MyNamesEMurray/LensLink&apos;&gt;LensLink&lt;/a&gt; (GPL-2.0-or-later).&lt;br&gt;Android: сервер &lt;a href=&apos;https://github.com/Genymobile/scrcpy&apos;&gt;scrcpy&lt;/a&gt; (Apache-2.0) и adb, Android 12+, отладка по USB.&lt;/p&gt;&lt;p&gt;Лицензия: GNU GPL v3 или новее. Использует Qt (LGPLv3) и FFmpeg (GPL).&lt;/p&gt;</source>
         <translation>&lt;h3&gt;OneTakeLink %1&lt;/h3&gt;&lt;p&gt;Video recording from an iPhone or Android phone camera on Windows: monitoring, MP4 recording, media library.&lt;br&gt;No ads, subscriptions, watermarks or registration. Works offline.&lt;/p&gt;&lt;p&gt;Author: desNotto&lt;/p&gt;&lt;p&gt;iPhone: official &lt;b&gt;LensLink Camera&lt;/b&gt; app (App Store); the connection module is based on &lt;a href=&apos;https://github.com/MyNamesEMurray/LensLink&apos;&gt;LensLink&lt;/a&gt; code (GPL-2.0-or-later).&lt;br&gt;Android: &lt;a href=&apos;https://github.com/Genymobile/scrcpy&apos;&gt;scrcpy&lt;/a&gt; server (Apache-2.0) and adb, Android 12+, USB debugging.&lt;/p&gt;&lt;p&gt;License: GNU GPL v3 or later. Uses Qt (LGPLv3) and FFmpeg (GPL).&lt;/p&gt;</translation>
     </message>
@@ -574,7 +574,7 @@ iPhone: open the LensLink Camera app. Android: enable USB debugging.</translatio
     </message>
     <message>
         <location filename="../src/ui/ShootPage.cpp" line="183"/>
-        <location filename="../src/ui/ShootPage.cpp" line="987"/>
+        <location filename="../src/ui/ShootPage.cpp" line="970"/>
         <source>Старт через %1</source>
         <translation>Starting in %1</translation>
     </message>
@@ -621,433 +621,399 @@ The rotation is stored in the file without re-encoding.</translation>
         <translation>Frame format: the future crop frame on the monitor. The full frame is always recorded.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="290"/>
-        <source>Без гайдлайнов</source>
-        <translation>No guidelines</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="294"/>
-        <source>Безопасные зоны для вертикального видео 9:16.
-Красные и оранжевые — там интерфейс приложения (ник, подпись, кнопки) перекрывает видео.
-Зелёная — место для лиц, текста и логотипов.
-Зоны приблизительные: по рекомендациям Meta и Google для 1080×1920, интерфейс приложений со временем меняется.</source>
-        <translation>Safe zones for vertical 9:16 video.
-Red and orange: the app interface (name, caption, buttons) covers the video there.
-Green: the place for faces, text and logos.
-The zones are approximate, based on Meta and Google guidance for 1080×1920; app interfaces change over time.</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="300"/>
+        <location filename="../src/ui/ShootPage.cpp" line="315"/>
         <source>Формат</source>
         <translation>Format</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="302"/>
-        <source>Гайдлайны</source>
-        <translation>Guidelines</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="360"/>
+        <location filename="../src/ui/ShootPage.cpp" line="379"/>
         <source>Источник</source>
         <translation>Source</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="367"/>
-        <location filename="../src/ui/ShootPage.cpp" line="678"/>
+        <location filename="../src/ui/ShootPage.cpp" line="386"/>
+        <location filename="../src/ui/ShootPage.cpp" line="660"/>
         <source>Найти</source>
         <translation>Find</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="368"/>
+        <location filename="../src/ui/ShootPage.cpp" line="387"/>
         <source>Искать телефоны: iPhone по USB и Wi-Fi, Android по USB</source>
         <translation>Find phones: iPhone over USB and Wi-Fi, Android over USB</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="374"/>
+        <location filename="../src/ui/ShootPage.cpp" line="393"/>
         <source>IP iPhone, например 192.168.1.23</source>
         <translation>iPhone IP, e.g. 192.168.1.23</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="378"/>
-        <location filename="../src/ui/ShootPage.cpp" line="816"/>
+        <location filename="../src/ui/ShootPage.cpp" line="397"/>
+        <location filename="../src/ui/ShootPage.cpp" line="798"/>
         <source>Подключить</source>
         <translation>Connect</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="382"/>
+        <location filename="../src/ui/ShootPage.cpp" line="401"/>
         <source>Запустить камеру на iPhone</source>
         <translation>Start the camera on the iPhone</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="414"/>
+        <location filename="../src/ui/ShootPage.cpp" line="433"/>
         <source>Фактический поток</source>
         <translation>Actual stream</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="422"/>
+        <location filename="../src/ui/ShootPage.cpp" line="441"/>
         <source>Устройство</source>
         <translation>Device</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="423"/>
+        <location filename="../src/ui/ShootPage.cpp" line="442"/>
         <source>Разрешение</source>
         <translation>Resolution</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="424"/>
+        <location filename="../src/ui/ShootPage.cpp" line="443"/>
         <source>FPS</source>
         <translation>FPS</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="425"/>
-        <location filename="../src/ui/ShootPage.cpp" line="534"/>
+        <location filename="../src/ui/ShootPage.cpp" line="444"/>
+        <location filename="../src/ui/ShootPage.cpp" line="553"/>
         <source>Кодек</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="426"/>
-        <location filename="../src/ui/ShootPage.cpp" line="529"/>
+        <location filename="../src/ui/ShootPage.cpp" line="445"/>
+        <location filename="../src/ui/ShootPage.cpp" line="548"/>
         <source>Битрейт</source>
         <translation>Bitrate</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="427"/>
+        <location filename="../src/ui/ShootPage.cpp" line="446"/>
         <source>Пропуски кадров</source>
         <translation>Dropped frames</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="428"/>
+        <location filename="../src/ui/ShootPage.cpp" line="447"/>
         <source>Задержка</source>
         <translation>Latency</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="429"/>
+        <location filename="../src/ui/ShootPage.cpp" line="448"/>
         <source>Декодер</source>
         <translation>Decoder</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="435"/>
+        <location filename="../src/ui/ShootPage.cpp" line="454"/>
         <source>Камера iPhone</source>
         <translation>iPhone camera</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="439"/>
-        <location filename="../src/ui/ShootPage.cpp" line="524"/>
+        <location filename="../src/ui/ShootPage.cpp" line="458"/>
+        <location filename="../src/ui/ShootPage.cpp" line="543"/>
         <source>Режим</source>
         <translation>Mode</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="441"/>
+        <location filename="../src/ui/ShootPage.cpp" line="460"/>
         <source>Объектив</source>
         <translation>Lens</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="450"/>
+        <location filename="../src/ui/ShootPage.cpp" line="469"/>
         <source>Зум</source>
         <translation>Zoom</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="459"/>
+        <location filename="../src/ui/ShootPage.cpp" line="478"/>
         <source>Экспокоррекция</source>
         <translation>Exposure comp.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="461"/>
+        <location filename="../src/ui/ShootPage.cpp" line="480"/>
         <source>Фокус</source>
         <translation>Focus</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="462"/>
+        <location filename="../src/ui/ShootPage.cpp" line="481"/>
         <source>Экспозиция</source>
         <translation>Exposure</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="463"/>
+        <location filename="../src/ui/ShootPage.cpp" line="482"/>
         <source>Баланс белого</source>
         <translation>White balance</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="468"/>
+        <location filename="../src/ui/ShootPage.cpp" line="487"/>
         <source>Зафиксировать</source>
         <translation>Lock</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="504"/>
+        <location filename="../src/ui/ShootPage.cpp" line="523"/>
         <source>Настройки появятся, когда iPhone начнёт передавать видео</source>
         <translation>Settings appear once the iPhone starts streaming video</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="510"/>
+        <location filename="../src/ui/ShootPage.cpp" line="529"/>
         <source>Камера Android</source>
         <translation>Android camera</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="514"/>
+        <location filename="../src/ui/ShootPage.cpp" line="533"/>
         <source>Основная</source>
         <translation>Back</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="515"/>
+        <location filename="../src/ui/ShootPage.cpp" line="534"/>
         <source>Фронтальная</source>
         <translation>Front</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="516"/>
+        <location filename="../src/ui/ShootPage.cpp" line="535"/>
         <source>Внешняя</source>
         <translation>External</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="517"/>
+        <location filename="../src/ui/ShootPage.cpp" line="536"/>
         <source>Камера</source>
         <translation>Camera</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="528"/>
-        <location filename="../src/ui/ShootPage.cpp" line="871"/>
+        <location filename="../src/ui/ShootPage.cpp" line="547"/>
+        <location filename="../src/ui/ShootPage.cpp" line="853"/>
         <source>%1 Мбит/с</source>
         <translation>%1 Mbit/s</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="536"/>
+        <location filename="../src/ui/ShootPage.cpp" line="555"/>
         <source>Изменение перезапускает камеру телефона. Если телефон не умеет 60 fps в выбранном режиме, используется 30 fps.</source>
         <translation>Changing these restarts the phone camera. If the phone cannot do 60 fps in the chosen mode, 30 fps is used.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="564"/>
-        <source>Кадр и направляющие</source>
-        <translation>Frame and guides</translation>
+        <location filename="../src/ui/ShootPage.cpp" line="302"/>
+        <source>Красные и оранжевые зоны — там интерфейс приложения (ник, подпись, кнопки) перекрывает видео. Зелёная — место для лиц, текста и логотипов.
+Зоны приблизительные: по рекомендациям Meta и Google для 1080×1920, интерфейс приложений со временем меняется.</source>
+        <translation>Red and orange zones: the app interface (name, caption, buttons) covers the video there. Green: room for faces, text and logos.
+The zones are approximate, based on Meta and Google guidance for 1080×1920; app interfaces change over time.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="571"/>
-        <source>Положение кадра</source>
-        <translation>Frame position</translation>
+        <location filename="../src/ui/ShootPage.cpp" line="306"/>
+        <source>Безопасные зоны Instagram Reels (кадр 9:16)</source>
+        <translation>Instagram Reels safe zones (9:16 frame)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="574"/>
-        <source>Записывается полный кадр. Рамка показывает будущее кадрирование при экспорте; в файл она не попадает.</source>
-        <translation>The full frame is recorded. The frame shows the future crop for export; it is not written to the file.</translation>
+        <location filename="../src/ui/ShootPage.cpp" line="308"/>
+        <source>Безопасные зоны YouTube Shorts (кадр 9:16)</source>
+        <translation>YouTube Shorts safe zones (9:16 frame)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="580"/>
-        <source>Показывать направляющие (G)</source>
-        <translation>Show guides (G)</translation>
+        <location filename="../src/ui/ShootPage.cpp" line="310"/>
+        <source>Направляющие: сетка третей (G)</source>
+        <translation>Guides: rule of thirds (G)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="582"/>
-        <source>Сетка третей</source>
-        <translation>Rule of thirds</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="584"/>
-        <source>Центральные линии</source>
-        <translation>Centre lines</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="586"/>
-        <source>Безопасная зона 90 %</source>
-        <translation>Safe area 90 %</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/ShootPage.cpp" line="601"/>
+        <location filename="../src/ui/ShootPage.cpp" line="583"/>
         <source>Запись</source>
         <translation>Recording</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="609"/>
+        <location filename="../src/ui/ShootPage.cpp" line="591"/>
         <source>Изменить…</source>
         <translation>Change…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="612"/>
+        <location filename="../src/ui/ShootPage.cpp" line="594"/>
         <source>Папка</source>
         <translation>Folder</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="615"/>
+        <location filename="../src/ui/ShootPage.cpp" line="597"/>
         <source>Проект</source>
         <translation>Project</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="618"/>
+        <location filename="../src/ui/ShootPage.cpp" line="600"/>
         <source>Без таймера</source>
         <translation>No timer</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="619"/>
+        <location filename="../src/ui/ShootPage.cpp" line="601"/>
         <source>3 секунды</source>
         <translation>3 seconds</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="620"/>
+        <location filename="../src/ui/ShootPage.cpp" line="602"/>
         <source>5 секунд</source>
         <translation>5 seconds</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="621"/>
+        <location filename="../src/ui/ShootPage.cpp" line="603"/>
         <source>10 секунд</source>
         <translation>10 seconds</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="623"/>
+        <location filename="../src/ui/ShootPage.cpp" line="605"/>
         <source>Таймер</source>
         <translation>Timer</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="631"/>
-        <location filename="../src/ui/ShootPage.cpp" line="1030"/>
+        <location filename="../src/ui/ShootPage.cpp" line="613"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1013"/>
         <source>● REC  (Space)</source>
         <translation>● REC  (Space)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="671"/>
+        <location filename="../src/ui/ShootPage.cpp" line="653"/>
         <source>Поиск…</source>
         <translation>Search…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="690"/>
+        <location filename="../src/ui/ShootPage.cpp" line="672"/>
         <source>Wi-Fi — ввести IP вручную…</source>
         <translation>Wi-Fi — enter IP manually…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="788"/>
+        <location filename="../src/ui/ShootPage.cpp" line="770"/>
         <source>Отключить</source>
         <translation>Disconnect</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="810"/>
+        <location filename="../src/ui/ShootPage.cpp" line="792"/>
         <source>Идёт запись</source>
         <translation>Recording in progress</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="810"/>
+        <location filename="../src/ui/ShootPage.cpp" line="792"/>
         <source>Отключение источника остановит запись. Продолжить?</source>
         <translation>Disconnecting the source stops recording. Continue?</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="839"/>
-        <location filename="../src/ui/ShootPage.cpp" line="1163"/>
+        <location filename="../src/ui/ShootPage.cpp" line="821"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1146"/>
         <source>Не подключено</source>
         <translation>Not connected</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="867"/>
+        <location filename="../src/ui/ShootPage.cpp" line="849"/>
         <source> (заявлено %1)</source>
         <translation> (announced %1)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="874"/>
+        <location filename="../src/ui/ShootPage.cpp" line="856"/>
         <source>%1 из %2</source>
         <translation>%1 of %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="875"/>
+        <location filename="../src/ui/ShootPage.cpp" line="857"/>
         <source>~%1 мс</source>
         <translation>~%1 ms</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="980"/>
+        <location filename="../src/ui/ShootPage.cpp" line="963"/>
         <source>Нет видео</source>
         <translation>No video</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="981"/>
+        <location filename="../src/ui/ShootPage.cpp" line="964"/>
         <source>Сначала подключите телефон: запись начинается, когда идёт видеопоток.</source>
         <translation>Connect a phone first: recording starts once video is streaming.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="988"/>
+        <location filename="../src/ui/ShootPage.cpp" line="971"/>
         <source>Отменить таймер</source>
         <translation>Cancel timer</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1005"/>
+        <location filename="../src/ui/ShootPage.cpp" line="988"/>
         <source>Запись не началась</source>
         <translation>Recording did not start</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1010"/>
-        <location filename="../src/ui/ShootPage.cpp" line="1041"/>
+        <location filename="../src/ui/ShootPage.cpp" line="993"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1024"/>
         <source>Записывается: %1</source>
         <translation>Recording: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1037"/>
-        <location filename="../src/ui/ShootPage.cpp" line="1044"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1020"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1027"/>
         <source>■ STOP  (Space)</source>
         <translation>■ STOP  (Space)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1040"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1023"/>
         <source>Начинаем запись…</source>
         <translation>Starting recording…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1046"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1029"/>
         <source>● Запись</source>
         <translation>● Recording</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1049"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1032"/>
         <source>Сохранение…</source>
         <translation>Saving…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1050"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1033"/>
         <source>Сохранение дубля…</source>
         <translation>Saving the take…</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1069"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1052"/>
         <source>● Запись %1</source>
         <translation>● Recording %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1076"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1059"/>
         <source>✓ Сохранено: %1</source>
         <translation>✓ Saved: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1081"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1064"/>
         <source>Запись прервана</source>
         <translation>Recording interrupted</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1087"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1070"/>
         <source>Ошибка записи</source>
         <translation>Recording error</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1092"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1075"/>
         <source>Папка для записей</source>
         <translation>Recordings folder</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1097"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1080"/>
         <source>Нет доступа</source>
         <translation>Access denied</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1098"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1081"/>
         <source>В папку %1 нельзя записывать. Выберите другую.</source>
         <translation>Cannot write to %1. Choose another folder.</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1117"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1100"/>
         <source>Следующий дубль: %1</source>
         <translation>Next take: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1127"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1110"/>
         <source>Свободно: неизвестно</source>
         <translation>Free space: unknown</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1133"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1116"/>
         <source>Свободно %1 (≈ %2 мин записи)</source>
         <translation>Free %1 (≈ %2 min of recording)</translation>
     </message>
     <message>
-        <location filename="../src/ui/ShootPage.cpp" line="1137"/>
+        <location filename="../src/ui/ShootPage.cpp" line="1120"/>
         <source>Диск: %1</source>
         <translation>Disk: %1</translation>
     </message>

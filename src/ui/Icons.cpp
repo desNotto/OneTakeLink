@@ -81,4 +81,50 @@ QIcon resetRotation(const QColor &color)
     });
 }
 
+QIcon instagramMark(const QColor &color)
+{
+    return render([color](QPainter &p) {
+        p.setPen(QPen(color, 1.7));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(2.5, 2.5, 15.0, 15.0), 4.6, 4.6);
+        p.drawEllipse(QPointF(10.0, 10.0), 3.6, 3.6);
+        p.setPen(Qt::NoPen);
+        p.setBrush(color);
+        p.drawEllipse(QPointF(14.4, 5.6), 1.15, 1.15);
+    });
+}
+
+QIcon youtubeMark(const QColor &color)
+{
+    return render([color](QPainter &p) {
+        p.setPen(QPen(color, 1.7));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(1.8, 4.2, 16.4, 11.6), 3.6, 3.6);
+        QPainterPath play;
+        play.moveTo(8.2, 7.0);
+        play.lineTo(13.4, 10.0);
+        play.lineTo(8.2, 13.0);
+        play.closeSubpath();
+        p.setPen(QPen(color, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.setBrush(color);
+        p.drawPath(play);
+    });
+}
+
+QIcon thirdsGrid(const QColor &color)
+{
+    return render([color](QPainter &p) {
+        p.setPen(QPen(color, 1.6));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(2.5, 3.5, 15.0, 13.0), 2.4, 2.4);
+        p.setPen(QPen(color, 1.1));
+        for (int i = 1; i <= 2; ++i) {
+            const qreal x = 2.5 + 15.0 * i / 3.0;
+            const qreal y = 3.5 + 13.0 * i / 3.0;
+            p.drawLine(QPointF(x, 3.5), QPointF(x, 16.5));
+            p.drawLine(QPointF(2.5, y), QPointF(17.5, y));
+        }
+    });
+}
+
 } // namespace otl::icons

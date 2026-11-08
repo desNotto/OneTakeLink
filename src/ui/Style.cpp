@@ -156,6 +156,12 @@ QMenu::item:selected { background: #3A2B78; }
 QMenu::item:disabled { color: #5E5786; }
 QMenu::separator { height: 1px; background: #2D2066; margin: 4px 8px; }
 
+/* Top bar toggles (platform safe zones, guides) */
+QToolButton#topToggle { background: transparent; border: 1px solid #3A2B78; border-radius: 9px; padding: 4px; }
+QToolButton#topToggle:hover { background: #22165A; border-color: #5A43A8; }
+QToolButton#topToggle:checked { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2A1670, stop:1 #3A2B78);
+                                border: 1px solid @LAVENDER@; }
+
 /* Buttons over the camera monitor */
 QWidget#monitorButtons { background: transparent; }
 QToolButton#monitorButton { background: rgba(21, 10, 53, 190); border: 1px solid rgba(165, 119, 255, 120);

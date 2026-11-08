@@ -28,8 +28,9 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 **Мониторинг**
 - Вывод видео через OpenGL, аппаратное декодирование D3D11VA / DXVA2, программный резерв.
 - Фактические параметры потока: разрешение, FPS, кодек, битрейт, пропуски кадров, задержка, декодер.
-- Наложения: сетка третей, центральные линии, безопасная зона 90 %, рамка кадрирования 16:9 / 9:16 / 4:5 / 1:1. В файл не записываются.
-- Гайдлайны соцсетей для 9:16: безопасные зоны Instagram Reels и YouTube Shorts (красные/оранжевые — интерфейс приложения перекрывает видео, зелёная — место для лиц, текста, логотипов). Зоны приблизительные, по рекомендациям Meta и Google для 1080×1920.
+- Рамка формата 16:9 / 9:16 / 4:5 / 1:1 — ориентир для кадрирования в программе монтажа. Записывается всегда полный кадр; рамка и все наложения в файл не попадают.
+- Безопасные зоны Instagram Reels и YouTube Shorts для 9:16 (кнопки-логотипы на верхней панели; включается одна платформа, повторное нажатие выключает): красные/оранжевые — интерфейс приложения перекрывает видео, зелёная — место для лиц, текста, логотипов. Зоны приблизительные, по рекомендациям Meta и Google для 1080×1920.
+- Сетка третей (кнопка на верхней панели, клавиша G).
 - Поворот кадра на 90° (кнопки в углу монитора, R / Shift+R) для телефона, закреплённого боком или вверх ногами. Поворот записывается в MP4 как метка ориентации — без перекодирования; плееры, редакторы и соцсети показывают видео повёрнутым.
 - Полноэкранный режим монитора.
 
@@ -53,7 +54,7 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 
 **Интерфейс**
 - Один экран: плеер, монитор камеры, панель настроек, медиатека. Размеры областей сохраняются.
-- Верхняя панель: формат кадра, гайдлайны соцсетей, язык (RU / EN; по умолчанию — язык системы).
+- Верхняя панель: формат кадра, безопасные зоны Instagram / YouTube, сетка третей, язык (RU / EN; по умолчанию — язык системы).
 
 ### Требования
 
@@ -76,6 +77,7 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 | F11, двойной клик по монитору | Полноэкранный монитор |
 | Esc | Выход из полноэкранного режима |
 | R / Shift+R | Повернуть кадр на 90° / сбросить поворот |
+| G | Сетка третей |
 | K | Плеер: воспроизведение / пауза |
 | `,` / `.` | Плеер: кадр назад / вперёд |
 | Enter, двойной клик по дублю | Воспроизвести дубль |
@@ -115,8 +117,8 @@ otl-cli recover "D:\Video"           :: восстановить прерван�
 | 1. Модуль LensLink без OBS, проверка связи | готово |
 | 2. Просмотр, запись MP4 | готово |
 | 3. Медиатека, плеер, проекты и сессии | готово |
-| 4. Кадрирование и экспорт (H.264/H.265, NVENC / Quick Sync / AMF) | в планах |
-| — Android (scrcpy), безопасные зоны Reels / Shorts, интерфейс RU/EN | готово |
+| 4. Кадрирование и экспорт | не требуется: дубли идут в программу монтажа в полном кадре |
+| — Android (scrcpy), безопасные зоны Reels / Shorts, интерфейс RU/EN, поворот кадра | готово |
 | 5. Ручные ISO/выдержка, окно настроек | в планах |
 | 6. Проверка совместимости, установщик | в планах |
 
@@ -168,8 +170,9 @@ English interface. Version: **0.3**.
 **Monitoring**
 - OpenGL video output, D3D11VA / DXVA2 hardware decoding with software fallback.
 - Actual stream parameters: resolution, FPS, codec, bitrate, dropped frames, latency, decoder.
-- Overlays: rule of thirds, centre lines, 90 % safe area, 16:9 / 9:16 / 4:5 / 1:1 crop frame. Never written to files.
-- Social guidelines for 9:16: Instagram Reels and YouTube Shorts safe zones (red/orange: the app interface covers the video; green: room for faces, text, logos). Approximate, based on Meta and Google guidance for 1080×1920.
+- 16:9 / 9:16 / 4:5 / 1:1 format frame — a framing guide for cropping in the video editor. The full frame is always recorded; the frame and all overlays are never written to files.
+- Instagram Reels and YouTube Shorts safe zones for 9:16 (logo buttons in the top bar; one platform at a time, click again to turn off): red/orange — the app interface covers the video; green — room for faces, text, logos. Approximate, based on Meta and Google guidance for 1080×1920.
+- Rule-of-thirds grid (top-bar button, G key).
 - 90° frame rotation (buttons in the monitor corner, R / Shift+R) for a phone mounted sideways or upside down. The rotation is stored in the MP4 as orientation metadata — no re-encoding; players, editors and social networks show the video rotated.
 - Full-screen monitor.
 
@@ -193,7 +196,7 @@ English interface. Version: **0.3**.
 
 **Interface**
 - Single screen: player, camera monitor, settings panel, media library. Pane sizes are remembered.
-- Top bar: frame format, social guidelines, language (RU / EN; defaults to the system language).
+- Top bar: frame format, Instagram / YouTube safe zones, thirds grid, language (RU / EN; defaults to the system language).
 
 ### Requirements
 
@@ -216,6 +219,7 @@ English interface. Version: **0.3**.
 | F11, double-click on monitor | Full-screen monitor |
 | Esc | Leave full screen |
 | R / Shift+R | Rotate the picture 90° / reset rotation |
+| G | Rule-of-thirds grid |
 | K | Player: play / pause |
 | `,` / `.` | Player: previous / next frame |
 | Enter, double-click on a take | Play take |
@@ -255,8 +259,8 @@ otl-cli recover "D:\Video"           :: recover interrupted recordings
 | 1. LensLink module without OBS, link checks | done |
 | 2. Preview, MP4 recording | done |
 | 3. Media library, player, projects and sessions | done |
-| 4. Cropping and export (H.264/H.265, NVENC / Quick Sync / AMF) | planned |
-| — Android (scrcpy), Reels / Shorts safe zones, RU/EN interface | done |
+| 4. Cropping and export | not needed: takes go to a video editor in full frame |
+| — Android (scrcpy), Reels / Shorts safe zones, RU/EN interface, frame rotation | done |
 | 5. Manual ISO/shutter, settings window | planned |
 | 6. Compatibility testing, installer | planned |
 

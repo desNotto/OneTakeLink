@@ -13,4 +13,12 @@ QIcon rotateClockwise(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
 // Counter-clockwise arrow back to the start: reset to the original orientation.
 QIcon resetRotation(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
 
+// Platform marks drawn in the app's own line style (not the brand artwork):
+// a rounded camera with lens and dot (Instagram), a rounded screen with a
+// play triangle (YouTube).
+QIcon instagramMark(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
+QIcon youtubeMark(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
+// Rule-of-thirds grid in a rounded frame: composition guides on/off.
+QIcon thirdsGrid(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
+
 } // namespace otl::icons

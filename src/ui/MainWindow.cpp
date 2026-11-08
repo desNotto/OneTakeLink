@@ -151,6 +151,7 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     hotkey(QKeySequence(Qt::Key_Space), [this] { m_shoot->toggleRecording(); }); // spec: Space = REC/STOP
     hotkey(QKeySequence(Qt::Key_K), [this] { m_library->togglePlay(); });
     hotkey(QKeySequence(Qt::Key_R), [this] { m_shoot->rotateClockwise(); });
+    hotkey(QKeySequence(Qt::Key_G), [this] { m_shoot->toggleGuides(); });
     hotkey(QKeySequence(Qt::SHIFT | Qt::Key_R), [this] { m_shoot->resetRotation(); });
     hotkey(QKeySequence(Qt::Key_Comma), [this] { m_library->playerWidget()->step(-1); });
     hotkey(QKeySequence(Qt::Key_Period), [this] { m_library->playerWidget()->step(1); });
