@@ -6,9 +6,27 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/display.h>
 }
 
+#include <cmath>
+
 namespace otl {
+
+int displayRotationCw(const AVCodecParameters *par)
+{
+    if (!par)
+        return 0;
+    const AVPacketSideData *sd =
+        av_packet_side_data_get(par->coded_side_data, par->nb_coded_side_data, AV_PKT_DATA_DISPLAYMATRIX);
+    if (!sd || sd->size < sizeof(int32_t) * 9)
+        return 0;
+    const double ccw = av_display_rotation_get(reinterpret_cast<const int32_t *>(sd->data));
+    if (std::isnan(ccw))
+        return 0;
+    const int cw = int(std::lround(-ccw / 90.0)) * 90;
+    return ((cw % 360) + 360) % 360;
+}
 
 MediaInfo probeMedia(const QString &path)
 {
@@ -27,8 +45,10 @@ MediaInfo probeMedia(const QString &path)
     int vs = av_find_best_stream(ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (vs >= 0) {
         AVStream *st = ctx->streams[vs];
-        info.width = st->codecpar->width;
-        info.height = st->codecpar->height;
+        info.rotation = displayRotationCw(st->codecpar);
+        const bool sideways = info.rotation == 90 || info.rotation == 270;
+        info.width = sideways ? st->codecpar->height : st->codecpar->width;
+        info.height = sideways ? st->codecpar->width : st->codecpar->height;
         AVRational r = st->avg_frame_rate.num ? st->avg_frame_rate : st->r_frame_rate;
         if (r.num && r.den)
             info.fps = av_q2d(r);

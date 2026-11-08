@@ -35,6 +35,7 @@ struct AppSettings {
     QString cropAspect = QStringLiteral("none"); // none, 16:9, 9:16, 4:5, 1:1
     QString socialGuide = QStringLiteral("none"); // none, reels, shorts
     QString language = QStringLiteral("auto");    // auto, ru, en
+    int monitorRotation = 0;                      // clockwise degrees
     bool guidesEnabled = true;
 
     int countdownSeconds = 0; // 0, 3, 5, 10

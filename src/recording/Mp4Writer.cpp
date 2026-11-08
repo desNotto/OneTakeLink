@@ -6,6 +6,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/display.h>
 #include <libavutil/opt.h>
 }
 
@@ -29,7 +30,8 @@ Mp4Writer::~Mp4Writer()
     av_packet_free(&m_pkt);
 }
 
-bool Mp4Writer::open(const QString &path, const StreamFormat &format, bool fragmented, QString *error)
+bool Mp4Writer::open(const QString &path, const StreamFormat &format, bool fragmented, QString *error,
+                     int rotationCw)
 {
     const QByteArray utf8 = path.toUtf8();
     int ret = avformat_alloc_output_context2(&m_ctx, nullptr, "mp4", utf8.constData());
@@ -62,6 +64,16 @@ bool Mp4Writer::open(const QString &path, const StreamFormat &format, bool fragm
             av_mallocz(size_t(format.parameterSets.size()) + AV_INPUT_BUFFER_PADDING_SIZE));
         std::memcpy(par->extradata, format.parameterSets.constData(), size_t(format.parameterSets.size()));
         par->extradata_size = format.parameterSets.size();
+    }
+    if (rotationCw % 360 != 0) {
+        AVPacketSideData *sd = av_packet_side_data_new(&par->coded_side_data, &par->nb_coded_side_data,
+                                                       AV_PKT_DATA_DISPLAYMATRIX, sizeof(int32_t) * 9, 0);
+        // av_display_rotation_set() takes a clockwise angle (while
+        // av_display_rotation_get() returns a counter-clockwise one): a
+        // 90° clockwise display shows up in ffprobe as rotation=-90, like a
+        // portrait iPhone video.
+        if (sd)
+            av_display_rotation_set(reinterpret_cast<int32_t *>(sd->data), double(rotationCw));
     }
     m_stream->time_base = AVRational{1, 90000};
     if (format.fps > 0) {

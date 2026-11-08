@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "VideoPlayer.h"
 
+#include "MediaProbe.h"
+
 #include <algorithm>
 #include <chrono>
 
@@ -311,7 +313,7 @@ void VideoPlayer::run()
                     emit failed(cmd.path, why);
                     break;
                 }
-                emit opened(cmd.path, s.durationMs, s.fps);
+                emit opened(cmd.path, s.durationMs, s.fps, displayRotationCw(s.fmt->streams[s.stream]->codecpar));
                 show(s.decodeNext(), true); // poster: the first frame
                 break;
             }

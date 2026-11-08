@@ -30,6 +30,7 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 - Фактические параметры потока: разрешение, FPS, кодек, битрейт, пропуски кадров, задержка, декодер.
 - Наложения: сетка третей, центральные линии, безопасная зона 90 %, рамка кадрирования 16:9 / 9:16 / 4:5 / 1:1. В файл не записываются.
 - Гайдлайны соцсетей для 9:16: безопасные зоны Instagram Reels и YouTube Shorts (красные/оранжевые — интерфейс приложения перекрывает видео, зелёная — место для лиц, текста, логотипов). Зоны приблизительные, по рекомендациям Meta и Google для 1080×1920.
+- Поворот кадра на 90° (кнопки в углу монитора, R / Shift+R) для телефона, закреплённого боком или вверх ногами. Поворот записывается в MP4 как метка ориентации — без перекодирования; плееры, редакторы и соцсети показывают видео повёрнутым.
 - Полноэкранный режим монитора.
 
 **Управление камерой iPhone** (только параметры, которые сообщает LensLink Camera)
@@ -74,6 +75,7 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 | Space | REC / STOP |
 | F11, двойной клик по монитору | Полноэкранный монитор |
 | Esc | Выход из полноэкранного режима |
+| R / Shift+R | Повернуть кадр на 90° / сбросить поворот |
 | K | Плеер: воспроизведение / пауза |
 | `,` / `.` | Плеер: кадр назад / вперёд |
 | Enter, двойной клик по дублю | Воспроизвести дубль |
@@ -168,6 +170,7 @@ English interface. Version: **0.3**.
 - Actual stream parameters: resolution, FPS, codec, bitrate, dropped frames, latency, decoder.
 - Overlays: rule of thirds, centre lines, 90 % safe area, 16:9 / 9:16 / 4:5 / 1:1 crop frame. Never written to files.
 - Social guidelines for 9:16: Instagram Reels and YouTube Shorts safe zones (red/orange: the app interface covers the video; green: room for faces, text, logos). Approximate, based on Meta and Google guidance for 1080×1920.
+- 90° frame rotation (buttons in the monitor corner, R / Shift+R) for a phone mounted sideways or upside down. The rotation is stored in the MP4 as orientation metadata — no re-encoding; players, editors and social networks show the video rotated.
 - Full-screen monitor.
 
 **iPhone camera control** (only parameters reported by LensLink Camera)
@@ -212,6 +215,7 @@ English interface. Version: **0.3**.
 | Space | REC / STOP |
 | F11, double-click on monitor | Full-screen monitor |
 | Esc | Leave full screen |
+| R / Shift+R | Rotate the picture 90° / reset rotation |
 | K | Player: play / pause |
 | `,` / `.` | Player: previous / next frame |
 | Enter, double-click on a take | Play take |

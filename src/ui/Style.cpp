@@ -156,6 +156,14 @@ QMenu::item:selected { background: #3A2B78; }
 QMenu::item:disabled { color: #5E5786; }
 QMenu::separator { height: 1px; background: #2D2066; margin: 4px 8px; }
 
+/* Buttons over the camera monitor */
+QWidget#monitorButtons { background: transparent; }
+QToolButton#monitorButton { background: rgba(21, 10, 53, 190); border: 1px solid rgba(165, 119, 255, 120);
+                            border-radius: 9px; padding: 5px 7px; color: @GHOST@; font-weight: 700; }
+QToolButton#monitorButton:hover { background: rgba(58, 43, 120, 230); border-color: @LAVENDER@; }
+QToolButton#monitorButton:pressed { background: rgba(143, 92, 245, 230); }
+QToolButton#monitorButton:disabled { background: rgba(21, 10, 53, 110); border-color: rgba(165, 119, 255, 40); }
+
 /* Library player */
 QLabel#playerTitle { font-weight: 700; font-size: 14px; color: @GHOST@; }
 QLabel#playerTime { font-family: Consolas, "DejaVu Sans Mono", monospace; color: #C9B2FF; }

@@ -110,6 +110,12 @@ void PreviewWidget::setRecording(bool on, const QString &badge)
     update();
 }
 
+void PreviewWidget::setRotation(int degreesCw)
+{
+    m_rotation = ((degreesCw % 360) + 360) % 360 / 90 * 90;
+    update();
+}
+
 void PreviewWidget::onFrame(const FramePtr &frame)
 {
     {
@@ -240,12 +246,28 @@ void PreviewWidget::paintGL()
 
     QRectF video;
     if (m_shown && m_layout) {
-        video = videoRect(m_shown->width, m_shown->height);
+        const bool sideways = m_rotation == 90 || m_rotation == 270;
+        video = sideways ? videoRect(m_shown->height, m_shown->width) : videoRect(m_shown->width, m_shown->height);
         const qreal dpr = devicePixelRatioF();
         // GL's origin is bottom-left.
         glViewport(GLint(video.x() * dpr), GLint((height() - video.bottom()) * dpr),
                    GLsizei(video.width() * dpr), GLsizei(video.height() * dpr));
-        static const GLfloat verts[] = {-1, -1, 0, 1, 1, -1, 1, 1, -1, 1, 0, 0, 1, 1, 1, 0};
+        // Quad corners (clip space) with the texture coordinate of the
+        // source pixel shown there. Display (u, v), v down, maps to source:
+        //   0°: (u, v)   90° cw: (v, 1-u)   180°: (1-u, 1-v)   270°: (1-v, u)
+        auto src = [this](GLfloat u, GLfloat v, GLfloat *out) {
+            switch (m_rotation) {
+            case 90: out[0] = v; out[1] = 1 - u; break;
+            case 180: out[0] = 1 - u; out[1] = 1 - v; break;
+            case 270: out[0] = 1 - v; out[1] = u; break;
+            default: out[0] = u; out[1] = v; break;
+            }
+        };
+        GLfloat verts[16] = {-1, -1, 0, 0, 1, -1, 0, 0, -1, 1, 0, 0, 1, 1, 0, 0};
+        src(0, 1, verts + 2);  // bottom-left
+        src(1, 1, verts + 6);  // bottom-right
+        src(0, 0, verts + 10); // top-left
+        src(1, 0, verts + 14); // top-right
         m_program.bind();
         m_program.setUniformValue("texY", 0);
         m_program.setUniformValue("texU", 1);
@@ -283,7 +305,7 @@ void PreviewWidget::paintGL()
         drawOverlays(p, video);
     }
     if (m_recording) {
-        const QRectF badge(12, 12, 150, 30);
+        const QRectF badge(m_badgeLeft, 12, 150, 30);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(0x15, 0x0A, 0x35, 200));
         p.drawRoundedRect(badge, 6, 6);

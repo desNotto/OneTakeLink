@@ -42,7 +42,8 @@ public:
     ~Recorder() override;
 
     // Main thread. `finalPath` is where the finished .mp4 goes.
-    bool start(const QString &finalPath, QString *error);
+    // rotationCw: display rotation stored in the file (lossless).
+    bool start(const QString &finalPath, QString *error, int rotationCw = 0);
     void stop();
     State state() const { return m_state; }
     bool hasStream() const;
@@ -76,6 +77,7 @@ private:
         StreamFormat format;
         EncodedPacket packet;
         QString text;
+        int value = 0;
     };
 
     void post(Item item);
@@ -97,6 +99,7 @@ private:
     bool m_formatValid = false;
     std::vector<EncodedPacket> m_gop; // packets since the last keyframe
     QString m_finalPath;
+    int m_rotation = 0;
     std::unique_ptr<Mp4Writer> m_writer;
     int64_t m_firstPts = 0;
     int64_t m_lastPts = 0;

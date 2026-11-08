@@ -39,6 +39,12 @@ public:
     GuideSettings guides() const { return m_guides; }
     void setPlaceholder(const QString &text);
     void setRecording(bool on, const QString &badge = {});
+    // Display rotation, clockwise: 0, 90, 180 or 270. The picture (and the
+    // overlays, which follow the displayed frame) are rotated.
+    void setRotation(int degreesCw);
+    int rotation() const { return m_rotation; }
+    // Left edge of the REC badge (room for buttons placed over the view).
+    void setBadgeLeft(int x) { m_badgeLeft = x; update(); }
 
     // VideoFrameSink — any thread.
     void onFrame(const FramePtr &frame) override;
@@ -75,6 +81,8 @@ private:
     GuideSettings m_guides;
     QString m_placeholder;
     bool m_recording = false;
+    int m_rotation = 0;
+    int m_badgeLeft = 12;
     QString m_badge;
 };
 

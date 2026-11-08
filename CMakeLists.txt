@@ -86,6 +86,8 @@ set(APP_SOURCES
     src/main.cpp
     src/preview/PreviewWidget.cpp
     src/preview/PreviewWidget.h
+    src/ui/Icons.cpp
+    src/ui/Icons.h
     src/ui/LibraryPage.cpp
     src/ui/LibraryPage.h
     src/ui/PlayerPanel.cpp

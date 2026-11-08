@@ -51,7 +51,7 @@ bool Recorder::hasStream() const
     return m_hasStream;
 }
 
-bool Recorder::start(const QString &finalPath, QString *error)
+bool Recorder::start(const QString &finalPath, QString *error, int rotationCw)
 {
     if (m_state != State::Idle) {
         *error = tr("Запись уже идёт");
@@ -78,7 +78,7 @@ bool Recorder::start(const QString &finalPath, QString *error)
         return false;
     }
     setState(State::WaitingKeyframe);
-    post({Item::Start, {}, {}, finalPath});
+    post({Item::Start, {}, {}, finalPath, rotationCw});
     return true;
 }
 
@@ -172,6 +172,7 @@ void Recorder::run()
             break;
         case Item::Start:
             m_finalPath = item.text;
+            m_rotation = item.value;
             // Start from the last keyframe we hold, if any.
             if (m_formatValid && !m_gop.empty() && m_gop.front().keyframe)
                 beginFile();
@@ -193,7 +194,7 @@ void Recorder::beginFile()
     QString error;
     auto writer = std::make_unique<Mp4Writer>();
     const QString temp = tempPathFor(m_finalPath);
-    if (!writer->open(temp, m_format, true, &error)) {
+    if (!writer->open(temp, m_format, true, &error, m_rotation)) {
         QFile::remove(temp);
         m_finalPath.clear();
         setState(State::Idle);

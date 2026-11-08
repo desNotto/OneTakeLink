@@ -53,7 +53,14 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   `ui/language` (auto/ru/en), applied at startup; switching restarts the app.
 - Social safe zones (Reels/Shorts) are approximations in `PreviewWidget.cpp`
   (`layoutFor`), drawn only inside a 9:16 crop frame.
-- Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`.
+- Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`;
+  R / Shift+R rotate / reset the monitor.
+- Monitor rotation (setting `camera/rotation`, clockwise) is written into takes
+  as the MP4 display matrix (`av_display_rotation_set` takes a CLOCKWISE angle,
+  `av_display_rotation_get` returns counter-clockwise; ffprobe shows -90 for a
+  90° cw take, like portrait iPhone video). Player, thumbnails and MediaProbe
+  apply it (`displayRotationCw`); crop/guides are in display space, so export
+  must rotate before cropping.
 - Media pool = one QStandardItemModel + TakeFilterModel proxy shown by a
   thumbnail QListView and a detail QTreeView sharing one selection model.
 - No telemetry, no network except the phone link.

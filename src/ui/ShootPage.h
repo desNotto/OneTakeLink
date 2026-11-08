@@ -21,6 +21,7 @@ class QLineEdit;
 class QPushButton;
 class QSlider;
 class QScrollArea;
+class QToolButton;
 
 namespace otl {
 
@@ -44,6 +45,8 @@ public:
     void setControlsVisible(bool visible); // compact fullscreen mode
     void shutdown();                       // stop source before teardown
     void connectTo(const QString &deviceKey); // e.g. "usb:" or "wifi:192.168.1.5"
+    void rotateClockwise();   // +90°, also written into new takes
+    void resetRotation();     // back to the camera's own orientation
     QString sessionFolderHint() const;
     QWidget *monitorWidget() const;
     QWidget *inspectorWidget() const;
@@ -88,6 +91,8 @@ private:
     void applySourceOptions();
     void sendCommand(const QJsonObject &cmd);
     void emitSummary();
+    void buildMonitorButtons();
+    void applyRotation(int degreesCw);
 
     AppSettings *m_settings;
     CameraSource *m_source = nullptr; // the active one of the two below
@@ -158,6 +163,10 @@ private:
     QLabel *m_durationLabel = nullptr;
     QLabel *m_savedLabel = nullptr;
     QLabel *m_diskLabel = nullptr;
+
+    QWidget *m_monitorButtons = nullptr;
+    QToolButton *m_rotateButton = nullptr;
+    QToolButton *m_resetRotationButton = nullptr;
 
     QTimer m_diskTimer;
     QTimer m_countdownTimer;

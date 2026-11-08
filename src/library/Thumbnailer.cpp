@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "Thumbnailer.h"
 
+#include "MediaProbe.h"
+
+#include <QTransform>
+
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -84,7 +88,8 @@ QImage renderThumbnail(const QString &videoPath, int width)
                     int dstStride[4] = {int(img.bytesPerLine()), 0, 0, 0};
                     sws_scale(sws, frame->data, frame->linesize, 0, frame->height, dst, dstStride);
                     sws_freeContext(sws);
-                    result = img;
+                    const int rot = displayRotationCw(st->codecpar);
+                    result = rot ? img.transformed(QTransform().rotate(rot)) : img;
                 }
             }
         }

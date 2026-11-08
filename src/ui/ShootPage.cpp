@@ -4,6 +4,7 @@
 #include "camera/DeviceDiscovery.h"
 #include "camera/android/AndroidSource.h"
 #include "camera/lenslink/LensLinkSource.h"
+#include "ui/Icons.h"
 #include "recording/TakeNamer.h"
 
 #include <QCheckBox>
@@ -26,6 +27,7 @@
 #include <QSlider>
 #include <QStorageInfo>
 #include <QStyle>
+#include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -138,6 +140,7 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
     // inspectorWidget()); this object keeps the logic.
     buildFormatBar();
     buildPanel();
+    buildMonitorButtons();
 
     for (QLabel *l : {m_statusLabel, m_hintLabel, m_folderLabel, m_nextNameLabel, m_durationLabel,
                       m_savedLabel, m_diskLabel, m_infoDevice, m_infoResolution, m_infoFps, m_infoCodec,
@@ -202,6 +205,66 @@ void ShootPage::shutdown()
         m_lenslink->stop();
     if (m_android)
         m_android->stop();
+}
+
+void ShootPage::buildMonitorButtons()
+{
+    // Over the monitor's top-left corner: rotate 90° clockwise / reset.
+    // For phones that can only be mounted sideways or upside down.
+    m_monitorButtons = new QWidget(m_preview);
+    m_monitorButtons->setObjectName(QStringLiteral("monitorButtons"));
+    auto *h = new QHBoxLayout(m_monitorButtons);
+    h->setContentsMargins(0, 0, 0, 0);
+    h->setSpacing(6);
+
+    m_rotateButton = new QToolButton;
+    m_rotateButton->setIcon(icons::rotateClockwise());
+    m_rotateButton->setIconSize(QSize(22, 22));
+    m_rotateButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_rotateButton->setToolTip(tr("Повернуть кадр на 90° по часовой стрелке (R).\n"
+                                  "Поворот записывается в файл без перекодирования."));
+    m_resetRotationButton = new QToolButton;
+    m_resetRotationButton->setIcon(icons::resetRotation());
+    m_resetRotationButton->setIconSize(QSize(22, 22));
+    m_resetRotationButton->setToolTip(tr("Сбросить поворот — исходная ориентация камеры (Shift+R)"));
+    for (QToolButton *b : {m_rotateButton, m_resetRotationButton}) {
+        b->setObjectName(QStringLiteral("monitorButton"));
+        b->setFocusPolicy(Qt::NoFocus);
+        b->setCursor(Qt::PointingHandCursor);
+        h->addWidget(b);
+    }
+    m_monitorButtons->move(10, 10);
+
+    connect(m_rotateButton, &QToolButton::clicked, this, &ShootPage::rotateClockwise);
+    connect(m_resetRotationButton, &QToolButton::clicked, this, &ShootPage::resetRotation);
+    applyRotation(m_settings->monitorRotation);
+}
+
+void ShootPage::rotateClockwise()
+{
+    applyRotation(m_preview->rotation() + 90);
+}
+
+void ShootPage::resetRotation()
+{
+    applyRotation(0);
+}
+
+void ShootPage::applyRotation(int degreesCw)
+{
+    // The angle is fixed per file when a take starts.
+    if (m_recorder->state() != Recorder::State::Idle)
+        return;
+    degreesCw = ((degreesCw % 360) + 360) % 360;
+    m_preview->setRotation(degreesCw);
+    m_rotateButton->setText(degreesCw ? QStringLiteral("%1°").arg(degreesCw) : QString());
+    m_resetRotationButton->setEnabled(degreesCw != 0);
+    m_monitorButtons->adjustSize();
+    m_preview->setBadgeLeft(m_monitorButtons->geometry().right() + 10);
+    if (m_settings->monitorRotation != degreesCw) {
+        m_settings->monitorRotation = degreesCw;
+        m_settings->save();
+    }
 }
 
 QWidget *ShootPage::buildFormatBar()
@@ -937,7 +1000,7 @@ void ShootPage::startRecordingNow()
     namer.pattern = m_settings->namePattern;
     const QString path = namer.nextTakePath();
     QString error;
-    if (!m_recorder->start(path, &error)) {
+    if (!m_recorder->start(path, &error, m_preview->rotation())) {
         onRecorderState(m_recorder->state());
         QMessageBox::warning(this, tr("Запись не началась"), error);
         return;
@@ -988,6 +1051,9 @@ void ShootPage::onRecorderState(Recorder::State state)
         break;
     }
     m_recButton->setEnabled(state != Recorder::State::Finalizing);
+    const bool idle = state == Recorder::State::Idle;
+    m_rotateButton->setEnabled(idle);
+    m_resetRotationButton->setEnabled(idle && m_preview->rotation() != 0);
     // Re-polish so the stylesheet picks up the "recording" property.
     m_recButton->style()->unpolish(m_recButton);
     m_recButton->style()->polish(m_recButton);

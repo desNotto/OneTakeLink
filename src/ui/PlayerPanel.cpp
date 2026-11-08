@@ -202,9 +202,10 @@ PlayerPanel::PlayerPanel(QWidget *parent) : QWidget(parent)
             m_player->play();
     });
 
-    connect(m_player, &VideoPlayer::opened, this, [this](const QString &path, qint64 durationMs, double) {
+    connect(m_player, &VideoPlayer::opened, this, [this](const QString &path, qint64 durationMs, double, int rotation) {
         if (path != m_path)
             return;
+        m_view->setRotation(rotation);
         setDuration(durationMs);
         setControlsEnabled(true);
     });

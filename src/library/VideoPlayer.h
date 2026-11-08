@@ -39,7 +39,7 @@ public:
     bool isPlaying() const { return m_playing; }
 
 signals:
-    void opened(const QString &path, qint64 durationMs, double fps);
+    void opened(const QString &path, qint64 durationMs, double fps, int rotationCw);
     void failed(const QString &path, const QString &error);
     void closed();
     void positionChanged(qint64 ms);

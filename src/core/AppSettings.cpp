@@ -48,6 +48,7 @@ AppSettings AppSettings::load()
     a.cropAspect = s.value("guides/aspect", a.cropAspect).toString();
     a.socialGuide = s.value("guides/social", a.socialGuide).toString();
     a.language = s.value("ui/language", a.language).toString();
+    a.monitorRotation = s.value("camera/rotation", 0).toInt();
     a.guidesEnabled = s.value("guides/enabled", a.guidesEnabled).toBool();
     a.countdownSeconds = s.value("record/countdown", a.countdownSeconds).toInt();
     return a;
@@ -77,6 +78,7 @@ void AppSettings::save() const
     s.setValue("guides/aspect", cropAspect);
     s.setValue("guides/social", socialGuide);
     s.setValue("ui/language", language);
+    s.setValue("camera/rotation", monitorRotation);
     s.setValue("guides/enabled", guidesEnabled);
     s.setValue("record/countdown", countdownSeconds);
 }

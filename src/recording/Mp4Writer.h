@@ -18,7 +18,10 @@ public:
     ~Mp4Writer();
 
     // fragmented = crash-safe fragmented MP4 (fragment every ~0.5 s).
-    bool open(const QString &path, const StreamFormat &format, bool fragmented, QString *error);
+    // rotationCw (0/90/180/270): stored as the track's display matrix, so
+    // players show the video rotated without re-encoding it.
+    bool open(const QString &path, const StreamFormat &format, bool fragmented, QString *error,
+              int rotationCw = 0);
     // pts relative to the first frame, in nanoseconds; must increase.
     bool write(const EncodedPacket &packet, int64_t relPtsNs, int64_t durationNs, QString *error);
     bool close(QString *error); // writes the trailer
