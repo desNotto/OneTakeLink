@@ -83,6 +83,14 @@ python3 tools/fake_phone.py &            # fake LensLink Camera on :9979
 OTL_ADB=$PWD/tools/fake_adb.py OTL_SCRCPY_SERVER=/etc/hostname ./build/otl-cli record android /tmp/a.mp4 5
 ```
 
+Windows (VS 2022, Qt 6.8 MSVC, FFmpeg "full_build-shared"):
+
+```bat
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+      -DCMAKE_PREFIX_PATH=C:\Qt\6.8.3\msvc2022_64 -DFFMPEG_ROOT=C:\ffmpeg-7.1.1-full_build-shared
+cmake --build build
+```
+
 GUI on a virtual display: `Xvfb :99 &` then
 `DISPLAY=:99 ./build/OneTakeLink --connect=wifi:127.0.0.1`.
 Windows builds come from `.github/workflows/build.yml` (Qt 6.8.3 MSVC,

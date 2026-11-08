@@ -6,90 +6,58 @@
 
 ## Русский
 
-OneTakeLink — приложение для Windows 10/11 x64: приём видео с камеры iPhone
-(через приложение **LensLink Camera**) или Android-телефона (через USB-отладку,
-без установки приложений), мониторинг, запись в MP4, медиатека записей со
-встроенным плеером. Интерфейс на русском и английском. Версия: **1.0.0**.
+Приложение для Windows 10/11 x64. Принимает видео с камеры iPhone или Android-телефона, показывает его на мониторе и записывает дубли в MP4. Версия 1.0.0.
 
-### Функции
+### Возможности
 
-**Подключение iPhone**
-- По USB (служба Apple Mobile Device Service) или по Wi-Fi (поиск Bonjour, ручной ввод IP).
-- Удалённый запуск камеры на iPhone; запрос режима 1080p 60 fps H.264 при подключении.
-
-**Подключение Android** (Android 12+, USB)
-- Через adb и сервер scrcpy, входящие в комплект программы; на телефон ничего не устанавливается.
-- Выбор камеры (основная / фронтальная / внешняя), режима (720p–4K, 30/60 fps), битрейта, кодека H.264/H.265.
-- Если телефон не поддерживает 60 fps в выбранном режиме — автоматический переход на 30 fps.
-
-**Общее**
-- Автоматическое переподключение при обрыве связи; статус и подсказки по устранению проблем.
-
-**Мониторинг**
-- Вывод видео через OpenGL, аппаратное декодирование D3D11VA / DXVA2, программный резерв.
-- Фактические параметры потока: разрешение, FPS, кодек, битрейт, пропуски кадров, задержка, декодер.
-- Рамка формата 16:9 / 9:16 / 4:5 / 1:1 — ориентир для кадрирования в программе монтажа. Записывается всегда полный кадр; рамка и все наложения в файл не попадают.
-- Безопасные зоны Instagram Reels и YouTube Shorts для 9:16 (кнопки-логотипы на верхней панели; включается одна платформа, повторное нажатие выключает): красные/оранжевые — интерфейс приложения перекрывает видео, зелёная — место для лиц, текста, логотипов. Зоны приблизительные, по рекомендациям Meta и Google для 1080×1920.
-- Сетка третей (кнопка на верхней панели, клавиша G).
-- Поворот кадра на 90° (кнопки в углу монитора, R / Shift+R) для телефона, закреплённого боком или вверх ногами. Поворот записывается в MP4 как метка ориентации — без перекодирования; плееры, редакторы и соцсети показывают видео повёрнутым.
-- Полноэкранный режим монитора.
-
-**Управление камерой iPhone** (только параметры, которые сообщает LensLink Camera)
-- Режим (разрешение × FPS), объектив, зум, экспокоррекция.
-- Фиксация фокуса, экспозиции, баланса белого.
-
-**Запись**
-- MP4 без перекодирования: исходный поток H.264/HEVC с iPhone, без аудиодорожки.
-- Начало дубля с ближайшего ключевого кадра до нажатия REC (0–4 с).
-- Защита от сбоев: при аварийном завершении или отключении питания дубль восстанавливается при следующем запуске; при потере связи сохраняется записанный фрагмент.
-- Проверка свободного места до и во время записи.
-- Структура папок `Проект/Session_ГГГГ-ММ-ДД/ГГГГ-ММ-ДД_Проект_Take_001.mp4`.
-- Таймер старта 3 / 5 / 10 с.
-
-**Медиатека и плеер**
-- Сетка миниатюр или таблица: длительность, дата, размер, разрешение, FPS, кодек, проект/сессия.
-- Поиск, фильтр по проекту, фильтр «Избранное», сортировка.
-- Встроенный плеер: воспроизведение, перемотка, точный переход к кадру, покадровый шаг.
-- Избранное, переименование, удаление в Корзину, открытие в Проводнике и во внешнем плеере.
-
-**Интерфейс**
-- Один экран: плеер, монитор камеры, панель настроек, медиатека. Размеры областей сохраняются.
-- Верхняя панель: формат кадра, безопасные зоны Instagram / YouTube, сетка третей, язык (RU / EN; по умолчанию — язык системы).
+- Источники: iPhone через приложение LensLink Camera (USB или Wi-Fi); Android 12+ по USB через отладку (adb и сервер scrcpy входят в комплект, на телефон ничего не устанавливается).
+- Запись в MP4 без перекодирования, без звука. Восстановление дубля после сбоя; сохранение записанного фрагмента при обрыве связи; контроль свободного места.
+- Монитор: фактические разрешение, FPS, битрейт, пропуски кадров, задержка.
+- Рамка формата 16:9 / 9:16 / 4:5 / 1:1, безопасные зоны Instagram Reels и YouTube Shorts, сетка третей. В файл не записываются; записывается полный кадр.
+- Поворот кадра на 90°. Сохраняется в MP4 как метка ориентации.
+- Настройки камеры: iPhone — режим, объектив, зум, экспокоррекция, фиксация фокуса, экспозиции и баланса белого; Android — камера, режим, битрейт, кодек.
+- Медиатека: миниатюры или таблица, поиск, фильтры, сортировка, встроенный плеер, избранное, переименование, удаление в Корзину.
+- Интерфейс на русском и английском.
 
 ### Требования
 
 - Windows 10 или 11, x64.
-- iPhone: приложение LensLink Camera (App Store). Для USB — iTunes или Apple Devices; для Wi-Fi — iPhone и ПК в одной сети, OneTakeLink разрешён в брандмауэре Windows.
-- Android: версия 12 или новее, включённая «Отладка по USB» (Настройки → О телефоне → 7 раз «Номер сборки» → Для разработчиков → Отладка по USB), подтверждение запроса отладки на телефоне. Для некоторых моделей нужен USB-драйвер производителя.
+- iPhone: приложение LensLink Camera (App Store); для USB — iTunes или Apple Devices.
+- Android: версия 12 или новее, включённая отладка по USB.
 
-### Установка и запуск
+### Установка
 
-1. Скачать со страницы [Releases](https://github.com/desNotto/onetakelink/releases/latest):
-   - `OneTakeLink-<версия>-setup-windows-x64.exe` — установщик: для всех пользователей или только для себя (без прав администратора), ярлыки, правило брандмауэра для Wi-Fi-подключения iPhone;
-   - или `OneTakeLink-<версия>-windows-x64.zip` — портативная версия: распаковать и запустить `OneTakeLink.exe`.
-2. Файлы не подписаны цифровой подписью: Windows SmartScreen может показать предупреждение — «Подробнее» → «Выполнить в любом случае».
-4. iPhone: открыть LensLink Camera. Android: подключить кабелем с включённой отладкой по USB.
-5. Выбрать устройство в панели «Источник», нажать «Подключить».
+Скачать на странице [Releases](https://github.com/desNotto/onetakelink/releases/latest):
 
-Удаление (Параметры Windows → Приложения) стирает программу, настройки, кэш миниатюр, журналы и правило брандмауэра. Записанные дубли не удаляются.
+- `OneTakeLink-<версия>-setup-windows-x64.exe` — установщик;
+- `OneTakeLink-<версия>-windows-x64.zip` — портативная версия, запуск `OneTakeLink.exe` без установки.
 
-Сборки разработки (каждое изменение): GitHub → Actions → последний успешный запуск «Build» → Artifacts.
+Файлы не подписаны цифровой подписью; при предупреждении SmartScreen: «Подробнее» → «Выполнить в любом случае».
+
+### Как пользоваться
+
+1. Подготовить телефон:
+   - iPhone — открыть LensLink Camera; для USB подключить кабель и подтвердить «Доверять этому компьютеру»;
+   - Android — включить отладку по USB (Настройки → О телефоне → 7 раз «Номер сборки» → Для разработчиков → Отладка по USB), подключить кабель, подтвердить запрос отладки.
+2. В панели «Источник» нажать «Найти», выбрать устройство, нажать «Подключить».
+3. При необходимости: выбрать формат на верхней панели, включить безопасные зоны Instagram или YouTube, сетку третей, повернуть кадр кнопкой в углу монитора.
+4. Указать папку и проект в панели «Запись».
+5. Нажать REC (Space). Остановить — Space.
+6. Дубль появляется в медиатеке и открывается в плеере.
 
 ### Горячие клавиши
 
 | Клавиша | Действие |
 |---|---|
 | Space | REC / STOP |
-| F11, двойной клик по монитору | Полноэкранный монитор |
-| Esc | Выход из полноэкранного режима |
 | R / Shift+R | Повернуть кадр на 90° / сбросить поворот |
 | G | Сетка третей |
+| F11 / Esc | Полноэкранный монитор / выход |
 | K | Плеер: воспроизведение / пауза |
 | `,` / `.` | Плеер: кадр назад / вперёд |
-| Enter, двойной клик по дублю | Воспроизвести дубль |
 | F2 | Переименовать дубль |
 | F | Избранное |
-| Delete | Удалить в Корзину (с подтверждением) |
+| Delete | Удалить в Корзину |
 | F5 | Обновить медиатеку |
 
 ### Данные на диске
@@ -97,148 +65,78 @@ OneTakeLink — приложение для Windows 10/11 x64: приём вид
 | Что | Где | Очистка |
 |---|---|---|
 | Записи | папка из настроек, по умолчанию `Видео\OneTakeLink` | только пользователем |
-| Настройки | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\settings.ini` | — |
-| Временный файл записи `*.recording.mp4` | рядом с дублем | удаляется после остановки записи; после сбоя восстанавливается при запуске |
-| Кэш миниатюр | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\cache\thumbs` | удаляется вместе с дублем; при запуске — записи старше 60 дней и сверх 256 МБ |
-| Журнал | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\logs` | хранятся 2 последних сеанса, не более 10 МБ на сеанс |
-| Сервер scrcpy на Android | `/data/local/tmp/scrcpy-server.jar` | удаляется с телефона после отключения |
-| Фоновый сервер adb на ПК | процесс `adb.exe` | останавливается при выходе, если его запустил OneTakeLink |
+| Настройки | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\settings.ini` | при удалении программы |
+| Временный файл `*.recording.mp4` | рядом с дублем | после остановки записи; после сбоя восстанавливается при запуске |
+| Кэш миниатюр | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\cache\thumbs` | вместе с дублем; при запуске — старше 60 дней и сверх 256 МБ; при удалении программы |
+| Журнал | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\logs` | 2 последних сеанса, до 10 МБ каждый; при удалении программы |
+| Сервер scrcpy на Android | `/data/local/tmp/scrcpy-server.jar` | после отключения телефона |
+| Фоновый сервер adb | процесс `adb.exe` | при выходе, если его запустил OneTakeLink |
 
-Сетевые соединения — только с iPhone. Телеметрия не собирается.
+Сетевые соединения — только с телефоном. Телеметрии нет.
 
-### Диагностика: `otl-cli`
+### Прочее
 
-```bat
-otl-cli devices                      :: список устройств (iPhone и Android)
-otl-cli monitor usb 600              :: статистика потока раз в секунду, 600 с
-otl-cli monitor android 600          :: то же для Android
-otl-cli record usb test.mp4 60       :: тестовая запись 60 с
-otl-cli recover "D:\Video"           :: восстановить прерванные записи
-```
-
-### Статус разработки
-
-| Этап | Состояние |
-|---|---|
-| 1. Модуль LensLink без OBS, проверка связи | готово |
-| 2. Просмотр, запись MP4 | готово |
-| 3. Медиатека, плеер, проекты и сессии | готово |
-| 4. Кадрирование и экспорт | не требуется: дубли идут в программу монтажа в полном кадре |
-| — Android (scrcpy), безопасные зоны Reels / Shorts, интерфейс RU/EN, поворот кадра | готово |
-| 5. Ручные ISO/выдержка, окно настроек | в планах |
-| 6. Установщик | готово |
-| 6. Проверка совместимости на разных ПК и телефонах | в процессе |
-
-### Сборка из исходников
-
-Требуется CMake ≥ 3.21, Qt ≥ 6.4 (Widgets, OpenGLWidgets), FFmpeg (avcodec, avformat, avutil, swscale), Visual Studio 2022.
-
-```bat
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_PREFIX_PATH=C:\Qt\6.8.3\msvc2022_64 ^
-      -DFFMPEG_ROOT=C:\ffmpeg-7.1.1-full_build-shared
-cmake --build build
-```
-
-Эмуляторы для проверки без телефонов: LensLink Camera — `python tools/fake_phone.py`, затем `OneTakeLink --connect=wifi:127.0.0.1`; Android — `OTL_ADB=tools/fake_adb.py OTL_SCRCPY_SERVER=<любой файл> OneTakeLink --connect=android:`.
-Переводы: `tools/update_translations.sh` (исходные строки на русском, перевод — `translations/onetakelink_en.ts`).
-
-### Лицензия
-
-GNU GPL v3 или новее (`LICENSE`). Модуль подключения iPhone основан на коде
-[LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later);
-для Android используются [scrcpy](https://github.com/Genymobile/scrcpy) server и adb (Apache-2.0).
-Сторонние компоненты: `THIRD_PARTY_NOTICES.md`. Автор: desNotto.
+- Диагностика подключения: `otl-cli devices`, `otl-cli monitor usb|android <секунды>`, `otl-cli recover <папка>`.
+- Сборка из исходников и устройство проекта: `CLAUDE.md`.
+- Лицензия: GNU GPL v3 или новее. Используются [LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later), [scrcpy](https://github.com/Genymobile/scrcpy) и adb (Apache-2.0), Qt (LGPLv3), FFmpeg (GPL); подробнее — `THIRD_PARTY_NOTICES.md`.
+- Автор: desNotto.
 
 ---
 
 ## English
 
-OneTakeLink is a Windows 10/11 x64 application that receives video from an
-iPhone camera (via the **LensLink Camera** app) or an Android phone (over USB
-debugging, nothing installed on the phone), monitors it, records it to MP4 and
-manages the recordings in a media library with a built-in player. Russian and
-English interface. Version: **1.0.0**.
+Windows 10/11 x64 application. Receives video from an iPhone or Android phone camera, shows it on a monitor and records takes to MP4. Version 1.0.0.
 
 ### Features
 
-**iPhone connection**
-- USB (Apple Mobile Device Service) or Wi-Fi (Bonjour discovery, manual IP).
-- Remote camera start on the iPhone; requests 1080p 60 fps H.264 on connect.
-
-**Android connection** (Android 12+, USB)
-- Via adb and the scrcpy server shipped with the app; nothing is installed on the phone.
-- Camera choice (back / front / external), mode (720p–4K, 30/60 fps), bitrate, H.264/H.265.
-- Falls back to 30 fps automatically if the phone cannot do 60 fps in the chosen mode.
-
-**Common**
-- Automatic reconnection; connection status with troubleshooting hints.
-
-**Monitoring**
-- OpenGL video output, D3D11VA / DXVA2 hardware decoding with software fallback.
-- Actual stream parameters: resolution, FPS, codec, bitrate, dropped frames, latency, decoder.
-- 16:9 / 9:16 / 4:5 / 1:1 format frame — a framing guide for cropping in the video editor. The full frame is always recorded; the frame and all overlays are never written to files.
-- Instagram Reels and YouTube Shorts safe zones for 9:16 (logo buttons in the top bar; one platform at a time, click again to turn off): red/orange — the app interface covers the video; green — room for faces, text, logos. Approximate, based on Meta and Google guidance for 1080×1920.
-- Rule-of-thirds grid (top-bar button, G key).
-- 90° frame rotation (buttons in the monitor corner, R / Shift+R) for a phone mounted sideways or upside down. The rotation is stored in the MP4 as orientation metadata — no re-encoding; players, editors and social networks show the video rotated.
-- Full-screen monitor.
-
-**iPhone camera control** (only parameters reported by LensLink Camera)
-- Format (resolution × FPS), lens, zoom, exposure compensation.
-- Focus, exposure and white balance lock.
-
-**Recording**
-- MP4 without re-encoding: the iPhone's own H.264/HEVC stream, no audio track.
-- A take starts at the last keyframe before REC (0–4 s earlier).
-- Crash safety: takes interrupted by a crash or power loss are recovered on next start; on connection loss the recorded part is kept.
-- Free-space checks before and during recording.
-- Folder layout `Project/Session_YYYY-MM-DD/YYYY-MM-DD_Project_Take_001.mp4`.
-- Start countdown 3 / 5 / 10 s.
-
-**Media library and player**
-- Thumbnail grid or table: duration, date, size, resolution, FPS, codec, project/session.
-- Search, project filter, favourites filter, sorting.
-- Built-in player: playback, seeking, frame-accurate positioning, frame stepping.
-- Favourites, rename, delete to Recycle Bin, show in Explorer, open in external player.
-
-**Interface**
-- Single screen: player, camera monitor, settings panel, media library. Pane sizes are remembered.
-- Top bar: frame format, Instagram / YouTube safe zones, thirds grid, language (RU / EN; defaults to the system language).
+- Sources: iPhone via the LensLink Camera app (USB or Wi-Fi); Android 12+ over USB debugging (adb and the scrcpy server are bundled, nothing is installed on the phone).
+- MP4 recording without re-encoding, no audio. Take recovery after a crash; the recorded part is kept on connection loss; free-space checks.
+- Monitor: actual resolution, FPS, bitrate, dropped frames, latency.
+- 16:9 / 9:16 / 4:5 / 1:1 format frame, Instagram Reels and YouTube Shorts safe zones, rule-of-thirds grid. Not written to files; the full frame is recorded.
+- 90° frame rotation. Stored in the MP4 as orientation metadata.
+- Camera settings: iPhone — mode, lens, zoom, exposure compensation, focus/exposure/white-balance lock; Android — camera, mode, bitrate, codec.
+- Media library: thumbnails or table, search, filters, sorting, built-in player, favourites, rename, delete to Recycle Bin.
+- Russian and English interface.
 
 ### Requirements
 
 - Windows 10 or 11, x64.
-- iPhone: LensLink Camera (App Store). USB needs iTunes or Apple Devices; Wi-Fi needs the iPhone and PC on the same network and OneTakeLink allowed in Windows Firewall.
-- Android: version 12 or newer, "USB debugging" enabled (Settings → About phone → tap "Build number" 7 times → Developer options → USB debugging), the debugging prompt confirmed on the phone. Some models need the manufacturer's USB driver.
+- iPhone: LensLink Camera app (App Store); USB needs iTunes or Apple Devices.
+- Android: version 12 or newer, USB debugging enabled.
 
-### Installation and start
+### Installation
 
-1. Download from [Releases](https://github.com/desNotto/onetakelink/releases/latest):
-   - `OneTakeLink-<version>-setup-windows-x64.exe` — installer: for all users or just for you (no admin rights), shortcuts, firewall rule for iPhone Wi-Fi connection;
-   - or `OneTakeLink-<version>-windows-x64.zip` — portable: unpack and run `OneTakeLink.exe`.
-2. The files are not code-signed: Windows SmartScreen may warn — "More info" → "Run anyway".
-3. iPhone: open LensLink Camera. Android: connect the cable with USB debugging on.
-4. Pick the device in the Source panel and click Connect.
+Download from [Releases](https://github.com/desNotto/onetakelink/releases/latest):
 
-Uninstalling (Windows Settings → Apps) removes the program, settings, thumbnail cache, logs and the firewall rule. Recorded takes are not deleted.
+- `OneTakeLink-<version>-setup-windows-x64.exe` — installer;
+- `OneTakeLink-<version>-windows-x64.zip` — portable, run `OneTakeLink.exe` without installing.
 
-Development builds (every change): GitHub → Actions → latest successful "Build" run → Artifacts.
+The files are not code-signed; on a SmartScreen warning: "More info" → "Run anyway".
+
+### How to use
+
+1. Prepare the phone:
+   - iPhone — open LensLink Camera; for USB, connect the cable and confirm "Trust This Computer";
+   - Android — enable USB debugging (Settings → About phone → tap "Build number" 7 times → Developer options → USB debugging), connect the cable, confirm the debugging prompt.
+2. In the Source panel click Find, select the device, click Connect.
+3. Optionally: choose the format in the top bar, turn on Instagram or YouTube safe zones or the thirds grid, rotate the picture with the button in the monitor corner.
+4. Set the folder and project in the Recording panel.
+5. Press REC (Space). Stop with Space.
+6. The take appears in the media library and opens in the player.
 
 ### Keyboard shortcuts
 
 | Key | Action |
 |---|---|
 | Space | REC / STOP |
-| F11, double-click on monitor | Full-screen monitor |
-| Esc | Leave full screen |
-| R / Shift+R | Rotate the picture 90° / reset rotation |
+| R / Shift+R | Rotate picture 90° / reset rotation |
 | G | Rule-of-thirds grid |
+| F11 / Esc | Full-screen monitor / leave |
 | K | Player: play / pause |
 | `,` / `.` | Player: previous / next frame |
-| Enter, double-click on a take | Play take |
 | F2 | Rename take |
 | F | Favourite |
-| Delete | Move to Recycle Bin (with confirmation) |
+| Delete | Delete to Recycle Bin |
 | F5 | Refresh media library |
 
 ### Data on disk
@@ -246,55 +144,18 @@ Development builds (every change): GitHub → Actions → latest successful "Bui
 | What | Where | Cleanup |
 |---|---|---|
 | Recordings | folder from settings, default `Videos\OneTakeLink` | by the user only |
-| Settings | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\settings.ini` | — |
-| Temporary recording file `*.recording.mp4` | next to the take | removed when recording stops; recovered on start after a crash |
-| Thumbnail cache | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\cache\thumbs` | removed with the take; on start, entries older than 60 days and above 256 MB |
-| Log | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\logs` | last 2 sessions, max 10 MB per session |
-| scrcpy server on Android | `/data/local/tmp/scrcpy-server.jar` | removed from the phone after disconnect |
-| adb background server on the PC | `adb.exe` process | stopped on exit if OneTakeLink started it |
+| Settings | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\settings.ini` | on uninstall |
+| Temporary `*.recording.mp4` | next to the take | when recording stops; recovered on start after a crash |
+| Thumbnail cache | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\cache\thumbs` | with the take; on start — older than 60 days and above 256 MB; on uninstall |
+| Log | `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\logs` | last 2 sessions, up to 10 MB each; on uninstall |
+| scrcpy server on Android | `/data/local/tmp/scrcpy-server.jar` | after the phone disconnects |
+| adb background server | `adb.exe` process | on exit, if OneTakeLink started it |
 
-Network connections are made only to the iPhone. No telemetry.
+Network connections are made only to the phone. No telemetry.
 
-### Diagnostics: `otl-cli`
+### Other
 
-```bat
-otl-cli devices                      :: list devices (iPhone and Android)
-otl-cli monitor usb 600              :: stream statistics every second for 600 s
-otl-cli monitor android 600          :: same for Android
-otl-cli record usb test.mp4 60       :: 60 s test recording
-otl-cli recover "D:\Video"           :: recover interrupted recordings
-```
-
-### Development status
-
-| Stage | Status |
-|---|---|
-| 1. LensLink module without OBS, link checks | done |
-| 2. Preview, MP4 recording | done |
-| 3. Media library, player, projects and sessions | done |
-| 4. Cropping and export | not needed: takes go to a video editor in full frame |
-| — Android (scrcpy), Reels / Shorts safe zones, RU/EN interface, frame rotation | done |
-| 5. Manual ISO/shutter, settings window | planned |
-| 6. Installer | done |
-| 6. Compatibility testing on different PCs and phones | in progress |
-
-### Building from source
-
-Requires CMake ≥ 3.21, Qt ≥ 6.4 (Widgets, OpenGLWidgets), FFmpeg (avcodec, avformat, avutil, swscale), Visual Studio 2022.
-
-```bat
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_PREFIX_PATH=C:\Qt\6.8.3\msvc2022_64 ^
-      -DFFMPEG_ROOT=C:\ffmpeg-7.1.1-full_build-shared
-cmake --build build
-```
-
-Emulators for testing without phones: LensLink Camera — `python tools/fake_phone.py`, then `OneTakeLink --connect=wifi:127.0.0.1`; Android — `OTL_ADB=tools/fake_adb.py OTL_SCRCPY_SERVER=<any file> OneTakeLink --connect=android:`.
-Translations: `tools/update_translations.sh` (source strings are Russian; English in `translations/onetakelink_en.ts`).
-
-### License
-
-GNU GPL v3 or later (`LICENSE`). The iPhone connection module is based on
-[LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later);
-Android uses the [scrcpy](https://github.com/Genymobile/scrcpy) server and adb (Apache-2.0).
-Third-party components: `THIRD_PARTY_NOTICES.md`. Author: desNotto.
+- Connection diagnostics: `otl-cli devices`, `otl-cli monitor usb|android <seconds>`, `otl-cli recover <folder>`.
+- Building from source and project layout: `CLAUDE.md`.
+- License: GNU GPL v3 or later. Uses [LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later), [scrcpy](https://github.com/Genymobile/scrcpy) and adb (Apache-2.0), Qt (LGPLv3), FFmpeg (GPL); see `THIRD_PARTY_NOTICES.md`.
+- Author: desNotto.
