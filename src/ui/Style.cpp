@@ -131,6 +131,18 @@ QScrollBar::handle:horizontal { background: #3A2B78; border-radius: 4px; min-wid
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 
+/* Library player */
+QLabel#playerTitle { font-weight: 700; font-size: 14px; color: @GHOST@; }
+QLabel#playerTime { font-family: Consolas, "DejaVu Sans Mono", monospace; color: #C9B2FF; }
+QPushButton#transportButton, QPushButton#playButton { padding: 6px 10px; min-width: 22px; }
+QPushButton#playButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #B48CFF, stop:1 @LAVENDER@);
+                         border: none; padding: 6px 16px; }
+QPushButton#playButton:hover { background: #BE9BFF; }
+QPushButton#playButton:disabled { background: #2A1E5C; }
+QSlider#timeline::groove:horizontal { height: 6px; border-radius: 3px; }
+QSlider#timeline::handle:horizontal { width: 16px; height: 16px; margin: -6px 0; border-radius: 8px; }
+QSplitter::handle { background: transparent; width: 10px; }
+
 /* Status bar, dialogs */
 QStatusBar { background: #0F0828; color: #A9A3C7; border-top: 1px solid #22165A; }
 QStatusBar QLabel { padding: 0 8px; }

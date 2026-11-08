@@ -14,7 +14,7 @@ and the README are in **Russian**; code, comments and commits in English.
 | Ported C | `src/camera/lenslink/proto/` | from LensLink `obs-plugin/src`, GPL-2.0-or-later; keep the per-file provenance header up to date when changing them |
 | Preview | `src/preview/` | `PreviewWidget` (QOpenGLWidget, NV12/I420 → RGB shader, QPainter overlays), `CropMath.h` shared with export |
 | Recording | `src/recording/` | `Recorder` (passthrough remux, worker thread, GOP pre-roll), `Mp4Writer`, `TakeNamer` |
-| Library | `src/library/`, `src/ui/LibraryPage.*` | |
+| Library | `src/library/`, `src/ui/LibraryPage.*`, `src/ui/PlayerPanel.*` | `MediaProbe`, `Thumbnailer` (disk cache in CacheLocation/thumbs), `VideoPlayer` (worker thread, pts-paced, exact seek / frame step, feeds a `PreviewWidget`) |
 | UI | `src/ui/` | `MainWindow`, `ShootPage`, `Style` |
 | CLI | `tools/otl_cli.cpp` | `otl-cli devices|monitor|record|recover` |
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(OneTakeLink VERSION 0.1.0 LANGUAGES C CXX)
+project(OneTakeLink VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -65,9 +65,12 @@ add_library(otl_core STATIC
     src/recording/Recorder.h
     src/recording/TakeNamer.cpp
     src/library/MediaProbe.cpp
+    src/library/Thumbnailer.cpp
+    src/library/VideoPlayer.cpp
+    src/library/VideoPlayer.h
 )
 target_include_directories(otl_core PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(otl_core PUBLIC Qt6::Core lenslink_proto ffmpeg)
+target_link_libraries(otl_core PUBLIC Qt6::Core Qt6::Gui lenslink_proto ffmpeg)
 
 # ------------------------------------------------------------ app
 set(APP_SOURCES
@@ -76,6 +79,8 @@ set(APP_SOURCES
     src/preview/PreviewWidget.h
     src/ui/LibraryPage.cpp
     src/ui/LibraryPage.h
+    src/ui/PlayerPanel.cpp
+    src/ui/PlayerPanel.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/ShootPage.cpp

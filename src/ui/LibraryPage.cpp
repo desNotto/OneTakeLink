@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "LibraryPage.h"
 
+#include "PlayerPanel.h"
+#include "library/Thumbnailer.h"
+
 #include <QApplication>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
@@ -14,12 +19,14 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPointer>
 #include <QProcess>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QShortcut>
+#include <QSplitter>
 #include <QTreeWidget>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -31,9 +38,12 @@ namespace otl {
 
 namespace {
 
-enum Column { ColFav, ColName, ColDate, ColDuration, ColSize, ColResolution, ColFps, ColCodec, ColFolder, ColCount };
+enum Column { ColFav, ColName, ColDate, ColDuration, ColSize, ColResolution, ColFps, ColCodec, ColSession, ColCount };
 constexpr int kPathRole = Qt::UserRole + 1;
 constexpr int kSortRole = Qt::UserRole + 2;
+constexpr int kProjectRole = Qt::UserRole + 3;
+const QSize kThumbSize(112, 63);
+constexpr int kThumbRenderWidth = 224; // 2x for high-DPI screens
 
 class SortItem : public QTreeWidgetItem {
 public:
@@ -62,6 +72,40 @@ QString sizeText(qint64 b)
     return QStringLiteral("%1 МБ").arg(double(b) / (1024.0 * 1024), 0, 'f', 1);
 }
 
+QString fpsText(double fps)
+{
+    if (fps <= 0)
+        return QStringLiteral("—");
+    const bool whole = std::abs(fps - std::round(fps)) < 0.05;
+    return QString::number(fps, 'f', whole ? 0 : 2);
+}
+
+QIcon placeholderIcon()
+{
+    static QIcon icon = [] {
+        QPixmap pm(kThumbSize * 2);
+        pm.fill(QColor(0x1A, 0x0F, 0x42));
+        return QIcon(pm);
+    }();
+    return icon;
+}
+
+// Every thumbnail gets the same 16:9 frame (vertical takes pillarboxed),
+// so names line up in the list.
+QIcon thumbIcon(const QImage &img)
+{
+    if (img.isNull())
+        return placeholderIcon();
+    QPixmap pm(kThumbSize * 2);
+    pm.fill(QColor(0x0D, 0x09, 0x21));
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    const QSize fit = img.size().scaled(pm.size(), Qt::KeepAspectRatio);
+    p.drawImage(QRect(QPoint((pm.width() - fit.width()) / 2, (pm.height() - fit.height()) / 2), fit), img);
+    p.end();
+    return QIcon(pm);
+}
+
 } // namespace
 
 LibraryPage::LibraryPage(AppSettings *settings, QWidget *parent)
@@ -70,7 +114,9 @@ LibraryPage::LibraryPage(AppSettings *settings, QWidget *parent)
     loadFavorites();
     auto *v = new QVBoxLayout(this);
     v->setContentsMargins(12, 12, 12, 12);
+    v->setSpacing(10);
 
+    // Actions
     auto *bar = new QHBoxLayout;
     auto button = [&](const QString &text, const QString &tip) {
         auto *b = new QPushButton(text);
@@ -78,7 +124,8 @@ LibraryPage::LibraryPage(AppSettings *settings, QWidget *parent)
         bar->addWidget(b);
         return b;
     };
-    auto *open = button(tr("Воспроизвести"), tr("Открыть во внешнем проигрывателе (Enter)"));
+    auto *play = button(tr("▶ Смотреть"), tr("Воспроизвести во встроенном плеере (Enter)"));
+    play->setObjectName(QStringLiteral("primaryButton"));
     auto *reveal = button(tr("Показать в папке"), tr("Открыть папку в Проводнике"));
     auto *fav = button(tr("★ Избранное"), tr("Отметить / снять отметку (F)"));
     auto *rename = button(tr("Переименовать"), tr("F2"));
@@ -87,48 +134,107 @@ LibraryPage::LibraryPage(AppSettings *settings, QWidget *parent)
     auto *refreshButton = button(tr("Обновить"), tr("Пересканировать папку записей (F5)"));
     v->addLayout(bar);
 
+    // Filters
+    auto *filters = new QHBoxLayout;
+    m_search = new QLineEdit;
+    m_search->setPlaceholderText(tr("Поиск по имени…"));
+    m_search->setClearButtonEnabled(true);
+    m_projectFilter = new QComboBox;
+    m_projectFilter->setMinimumWidth(180);
+    m_favOnly = new QCheckBox(tr("Только избранное"));
+    filters->addWidget(m_search, 2);
+    filters->addWidget(new QLabel(tr("Проект:")));
+    filters->addWidget(m_projectFilter, 1);
+    filters->addWidget(m_favOnly);
+    v->addLayout(filters);
+
+    // List | player
     m_tree = new QTreeWidget;
     m_tree->setColumnCount(ColCount);
-    m_tree->setHeaderLabels({QStringLiteral("★"), tr("Имя"), tr("Дата"), tr("Длительность"), tr("Размер"),
-                             tr("Разрешение"), tr("FPS"), tr("Кодек"), tr("Папка")});
+    m_tree->setHeaderLabels({QStringLiteral("★"), tr("Дубль"), tr("Дата"), tr("Длит."), tr("Размер"),
+                             tr("Разрешение"), tr("FPS"), tr("Кодек"), tr("Проект / сессия")});
     m_tree->setRootIsDecorated(false);
     m_tree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_tree->setSortingEnabled(true);
     m_tree->sortByColumn(ColDate, Qt::DescendingOrder);
     m_tree->setAlternatingRowColors(true);
-    m_tree->header()->setSectionResizeMode(ColName, QHeaderView::Stretch);
-    m_tree->header()->setStretchLastSection(false);
-    m_tree->setColumnWidth(ColFav, 32);
-    v->addWidget(m_tree, 1);
+    m_tree->setIconSize(kThumbSize);
+    m_tree->setUniformRowHeights(true);
+    m_tree->header()->setStretchLastSection(true);
+    m_tree->setColumnWidth(ColFav, 30);
+    m_tree->setColumnWidth(ColName, 300);
+    m_tree->setColumnWidth(ColDate, 120);
+    m_tree->setColumnWidth(ColDuration, 60);
+    m_tree->setColumnWidth(ColSize, 80);
+    m_tree->setColumnWidth(ColResolution, 90);
+    m_tree->setColumnWidth(ColFps, 45);
+    m_tree->setColumnWidth(ColCodec, 55);
+
+    m_player = new PlayerPanel;
+    m_splitter = new QSplitter(Qt::Horizontal);
+    m_splitter->addWidget(m_tree);
+    m_splitter->addWidget(m_player);
+    m_splitter->setStretchFactor(0, 3);
+    m_splitter->setStretchFactor(1, 2);
+    m_splitter->setChildrenCollapsible(false);
+    {
+        QSettings s(AppSettings::iniPath(), QSettings::IniFormat);
+        const QByteArray state = s.value("library/splitter").toByteArray();
+        if (!state.isEmpty())
+            m_splitter->restoreState(state);
+        else
+            m_splitter->setSizes({800, 560});
+    }
+    v->addWidget(m_splitter, 1);
 
     m_summary = new QLabel;
     m_summary->setObjectName(QStringLiteral("hintLabel"));
     v->addWidget(m_summary);
 
-    connect(open, &QPushButton::clicked, this, &LibraryPage::openSelected);
+    connect(play, &QPushButton::clicked, this, &LibraryPage::playSelected);
     connect(reveal, &QPushButton::clicked, this, &LibraryPage::revealSelected);
     connect(fav, &QPushButton::clicked, this, &LibraryPage::toggleFavorite);
     connect(rename, &QPushButton::clicked, this, &LibraryPage::renameSelected);
     connect(del, &QPushButton::clicked, this, &LibraryPage::deleteSelected);
     connect(refreshButton, &QPushButton::clicked, this, &LibraryPage::refresh);
-    connect(m_tree, &QTreeWidget::itemActivated, this, [this] { openSelected(); });
+    connect(m_tree, &QTreeWidget::itemActivated, this, [this] { playSelected(); });
+    connect(m_tree, &QTreeWidget::itemSelectionChanged, this, &LibraryPage::onSelectionChanged);
+    connect(m_search, &QLineEdit::textChanged, this, &LibraryPage::applyFilters);
+    connect(m_projectFilter, &QComboBox::currentIndexChanged, this, &LibraryPage::applyFilters);
+    connect(m_favOnly, &QCheckBox::toggled, this, &LibraryPage::applyFilters);
+    connect(m_player, &PlayerPanel::openExternally, this, &LibraryPage::openExternally);
+    connect(m_splitter, &QSplitter::splitterMoved, this, [this] {
+        QSettings s(AppSettings::iniPath(), QSettings::IniFormat);
+        s.setValue("library/splitter", m_splitter->saveState());
+    });
 
-    auto shortcut = [this](const QKeySequence &k, void (LibraryPage::*fn)()) {
-        auto *s = new QShortcut(k, m_tree);
+    auto shortcut = [this](const QKeySequence &k, auto fn, QWidget *scope) {
+        auto *s = new QShortcut(k, scope);
         s->setContext(Qt::WidgetWithChildrenShortcut);
         connect(s, &QShortcut::activated, this, fn);
     };
-    shortcut(QKeySequence::Delete, &LibraryPage::deleteSelected);
-    shortcut(QKeySequence(Qt::Key_F2), &LibraryPage::renameSelected);
-    shortcut(QKeySequence(Qt::Key_F), &LibraryPage::toggleFavorite);
-    shortcut(QKeySequence(Qt::Key_F5), &LibraryPage::refresh);
+    shortcut(QKeySequence::Delete, [this] { deleteSelected(); }, m_tree);
+    shortcut(QKeySequence(Qt::Key_F2), [this] { renameSelected(); }, m_tree);
+    shortcut(QKeySequence(Qt::Key_F), [this] { toggleFavorite(); }, m_tree);
+    shortcut(QKeySequence(Qt::Key_F5), [this] { refresh(); }, this);
+    shortcut(QKeySequence(Qt::Key_Comma), [this] { m_player->step(-1); }, this);
+    shortcut(QKeySequence(Qt::Key_Period), [this] { m_player->step(1); }, this);
+    shortcut(QKeySequence(Qt::Key_Home), [this] { m_player->toStart(); }, m_player);
 
     refresh();
 }
 
 LibraryPage::~LibraryPage()
 {
-    ++*m_generation; // pending probes become no-ops
+    ++*m_generation; // pending background work becomes a no-op
+}
+
+void LibraryPage::togglePlay()
+{
+    if (m_player->currentPath().isEmpty())
+        playSelected();
+    else
+        m_player->togglePlay();
 }
 
 void LibraryPage::loadFavorites()
@@ -148,11 +254,24 @@ void LibraryPage::refresh()
 {
     const int gen = ++*m_generation;
     const QString root = m_settings->rootFolder;
+
+    // Keep the user's place across rescans (tab switches, new takes).
+    const QStringList selected = selectedPaths();
+    const QString current = m_tree->currentItem() ? m_tree->currentItem()->data(ColName, kPathRole).toString() : QString();
+
+    const QSignalBlocker blockSelection(m_tree);
     m_tree->setSortingEnabled(false);
     m_tree->clear();
 
-    QStringList paths;
-    qint64 totalBytes = 0;
+    struct Job {
+        QString path;
+        qint64 size;
+        qint64 mtime;
+    };
+    std::vector<Job> jobs;
+    QStringList projects;
+    QSet<QString> present;
+
     if (QDir(root).exists()) {
         QDirIterator it(root, {QStringLiteral("*.mp4"), QStringLiteral("*.mov")}, QDir::Files,
                         QDirIterator::Subdirectories);
@@ -161,10 +280,20 @@ void LibraryPage::refresh()
             if (path.endsWith(QLatin1String(".recording.mp4")))
                 continue; // a take in progress (or awaiting recovery)
             const QFileInfo fi(path);
+            const qint64 mtime = fi.lastModified().toMSecsSinceEpoch();
+            present.insert(path);
+
+            const QString relDir = QDir(root).relativeFilePath(fi.absolutePath());
+            const QString project = relDir == QLatin1String(".") ? QString() : relDir.section(QLatin1Char('/'), 0, 0);
+            if (!project.isEmpty() && !projects.contains(project))
+                projects << project;
+
             auto *item = new SortItem(m_tree);
             item->setData(ColName, kPathRole, path);
-            item->setText(ColFav, m_favorites.contains(path) ? QStringLiteral("★") : QString());
-            item->setData(ColFav, kSortRole, m_favorites.contains(path) ? 1 : 0);
+            item->setData(ColName, kProjectRole, project);
+            const bool fav = m_favorites.contains(path);
+            item->setText(ColFav, fav ? QStringLiteral("★") : QString());
+            item->setData(ColFav, kSortRole, fav ? 1 : 0);
             item->setText(ColName, fi.completeBaseName());
             item->setToolTip(ColName, QDir::toNativeSeparators(path));
             const QDateTime created = fi.birthTime().isValid() ? fi.birthTime() : fi.lastModified();
@@ -172,54 +301,165 @@ void LibraryPage::refresh()
             item->setData(ColDate, kSortRole, created.toMSecsSinceEpoch());
             item->setText(ColSize, sizeText(fi.size()));
             item->setData(ColSize, kSortRole, fi.size());
-            item->setText(ColFolder, QDir(root).relativeFilePath(fi.absolutePath()));
-            item->setText(ColDuration, QStringLiteral("…"));
-            totalBytes += fi.size();
-            paths << path;
+            item->setText(ColSession, relDir == QLatin1String(".") ? QString() : relDir);
+
+            Entry &e = m_cache[path];
+            if (e.probed && e.size == fi.size() && e.mtime == mtime) {
+                fillItem(item, e);
+            } else {
+                e = Entry{};
+                e.size = fi.size();
+                e.mtime = mtime;
+                item->setIcon(ColName, placeholderIcon());
+                item->setText(ColDuration, QStringLiteral("…"));
+                jobs.push_back({path, fi.size(), mtime});
+            }
         }
     }
-    m_tree->setSortingEnabled(true);
-    m_summary->setText(paths.isEmpty()
-                           ? tr("В папке %1 пока нет записей.").arg(QDir::toNativeSeparators(root))
-                           : tr("%1 файлов · %2 · %3").arg(paths.size()).arg(sizeText(totalBytes), QDir::toNativeSeparators(root)));
+    // Forget deleted files.
+    for (auto it = m_cache.begin(); it != m_cache.end();)
+        it = present.contains(it.key()) ? std::next(it) : m_cache.erase(it);
 
-    // Metadata off the UI thread.
+    m_tree->setSortingEnabled(true);
+    projects.sort(Qt::CaseInsensitive);
+    rebuildProjectFilter(projects);
+    applyFilters();
+
+    for (int i = 0; i < m_tree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem *item = m_tree->topLevelItem(i);
+        const QString p = item->data(ColName, kPathRole).toString();
+        if (selected.contains(p))
+            item->setSelected(true);
+        if (p == current)
+            m_tree->setCurrentItem(item, 0, QItemSelectionModel::NoUpdate);
+    }
+    if (!m_player->currentPath().isEmpty() && !present.contains(m_player->currentPath()))
+        m_player->unload();
+    updateSummary();
+
+    // Metadata and thumbnails off the UI thread.
+    if (jobs.empty())
+        return;
     QPointer<LibraryPage> self(this);
     auto generation = m_generation;
-    std::thread([self, generation, gen, paths] {
-        for (const QString &p : paths) {
+    std::thread([self, generation, gen, jobs] {
+        for (const Job &j : jobs) {
             if (*generation != gen)
                 return;
-            MediaInfo info = probeMedia(p);
-            QMetaObject::invokeMethod(qApp, [self, generation, gen, p, info] {
+            MediaInfo info = probeMedia(j.path);
+            QImage thumb = info.ok ? takeThumbnail(j.path, kThumbRenderWidth) : QImage();
+            QMetaObject::invokeMethod(qApp, [self, generation, gen, j, info, thumb] {
                 if (self && *generation == gen)
-                    self->onProbed(p, info);
+                    self->onProbed(j.path, j.size, j.mtime, info, thumb);
             }, Qt::QueuedConnection);
         }
     }).detach();
 }
 
-void LibraryPage::onProbed(const QString &path, const MediaInfo &info)
+void LibraryPage::rebuildProjectFilter(const QStringList &projects)
 {
+    const QString previous = m_projectFilter->currentData().toString();
+    const QSignalBlocker block(m_projectFilter);
+    m_projectFilter->clear();
+    m_projectFilter->addItem(tr("Все проекты"), QString());
+    for (const QString &p : projects)
+        m_projectFilter->addItem(p, p);
+    m_projectFilter->setCurrentIndex(std::max(0, m_projectFilter->findData(previous)));
+}
+
+void LibraryPage::applyFilters()
+{
+    const QString needle = m_search->text().trimmed();
+    const QString project = m_projectFilter->currentData().toString();
+    const bool favOnly = m_favOnly->isChecked();
     for (int i = 0; i < m_tree->topLevelItemCount(); ++i) {
         QTreeWidgetItem *item = m_tree->topLevelItem(i);
-        if (item->data(ColName, kPathRole).toString() != path)
+        bool show = needle.isEmpty() || item->text(ColName).contains(needle, Qt::CaseInsensitive);
+        show = show && (project.isEmpty() || item->data(ColName, kProjectRole).toString() == project);
+        show = show && (!favOnly || m_favorites.contains(item->data(ColName, kPathRole).toString()));
+        item->setHidden(!show);
+    }
+    updateSummary();
+}
+
+void LibraryPage::updateSummary()
+{
+    int shown = 0;
+    qint64 bytes = 0;
+    for (int i = 0; i < m_tree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem *item = m_tree->topLevelItem(i);
+        if (item->isHidden())
             continue;
-        if (!info.ok) {
-            item->setText(ColDuration, tr("ошибка"));
-            item->setToolTip(ColDuration, info.error);
-            return;
-        }
-        item->setText(ColDuration, durationText(info.durationMs));
-        item->setData(ColDuration, kSortRole, info.durationMs);
-        item->setText(ColResolution, QStringLiteral("%1×%2").arg(info.width).arg(info.height));
-        item->setData(ColResolution, kSortRole, qint64(info.width) * info.height);
-        const bool whole = std::abs(info.fps - std::round(info.fps)) < 0.05;
-        item->setText(ColFps, info.fps > 0 ? QString::number(info.fps, 'f', whole ? 0 : 2) : QStringLiteral("—"));
-        item->setData(ColFps, kSortRole, info.fps);
-        item->setText(ColCodec, info.codec);
+        ++shown;
+        bytes += item->data(ColSize, kSortRole).toLongLong();
+    }
+    const QString root = QDir::toNativeSeparators(m_settings->rootFolder);
+    if (m_tree->topLevelItemCount() == 0)
+        m_summary->setText(tr("В папке %1 пока нет записей.").arg(root));
+    else
+        m_summary->setText(tr("Показано %1 из %2 · %3 · %4")
+                               .arg(shown)
+                               .arg(m_tree->topLevelItemCount())
+                               .arg(sizeText(bytes), root));
+}
+
+void LibraryPage::fillItem(QTreeWidgetItem *item, const Entry &e)
+{
+    item->setIcon(ColName, thumbIcon(e.thumb));
+    if (!e.info.ok) {
+        item->setText(ColDuration, tr("ошибка"));
+        item->setToolTip(ColDuration, e.info.error);
         return;
     }
+    item->setText(ColDuration, durationText(e.info.durationMs));
+    item->setData(ColDuration, kSortRole, e.info.durationMs);
+    item->setText(ColResolution, QStringLiteral("%1×%2").arg(e.info.width).arg(e.info.height));
+    item->setData(ColResolution, kSortRole, qint64(e.info.width) * e.info.height);
+    item->setText(ColFps, fpsText(e.info.fps));
+    item->setData(ColFps, kSortRole, e.info.fps);
+    item->setText(ColCodec, e.info.codec);
+}
+
+void LibraryPage::onProbed(const QString &path, qint64 size, qint64 mtime, const MediaInfo &info, const QImage &thumb)
+{
+    Entry &e = m_cache[path];
+    e.size = size;
+    e.mtime = mtime;
+    e.probed = true;
+    e.info = info;
+    e.thumb = thumb;
+    for (int i = 0; i < m_tree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem *item = m_tree->topLevelItem(i);
+        if (item->data(ColName, kPathRole).toString() == path) {
+            fillItem(item, e);
+            break;
+        }
+    }
+    if (m_player->currentPath() == path) {
+        QTreeWidgetItem *cur = m_tree->currentItem();
+        m_player->load(path, cur ? cur->text(ColName) : QFileInfo(path).completeBaseName(), detailsText(path));
+    }
+}
+
+QString LibraryPage::detailsText(const QString &path) const
+{
+    const auto it = m_cache.constFind(path);
+    if (it == m_cache.constEnd() || !it->probed || !it->info.ok)
+        return QDir::toNativeSeparators(path);
+    const MediaInfo &i = it->info;
+    return QStringLiteral("%1×%2 · %3 fps · %4 · %5 · %6")
+        .arg(i.width)
+        .arg(i.height)
+        .arg(fpsText(i.fps), i.codec, durationText(i.durationMs), sizeText(it->size));
+}
+
+void LibraryPage::onSelectionChanged()
+{
+    const QStringList paths = selectedPaths();
+    if (paths.size() != 1)
+        return;
+    QTreeWidgetItem *item = m_tree->selectedItems().constFirst();
+    m_player->load(paths.first(), item->text(ColName), detailsText(paths.first()));
 }
 
 void LibraryPage::selectPath(const QString &path)
@@ -244,25 +484,39 @@ QStringList LibraryPage::selectedPaths() const
     return out;
 }
 
-void LibraryPage::openSelected()
+void LibraryPage::releaseFromPlayer(const QStringList &paths)
+{
+    if (paths.contains(m_player->currentPath()))
+        m_player->unload();
+}
+
+void LibraryPage::playSelected()
 {
     const QStringList paths = selectedPaths();
-    if (!paths.isEmpty())
-        QDesktopServices::openUrl(QUrl::fromLocalFile(paths.first()));
+    if (paths.isEmpty())
+        return;
+    QTreeWidgetItem *item = m_tree->selectedItems().constFirst();
+    m_player->load(paths.first(), item->text(ColName), detailsText(paths.first()));
+    m_player->togglePlay();
+}
+
+void LibraryPage::openExternally(const QString &path)
+{
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 void LibraryPage::revealSelected()
 {
     const QStringList paths = selectedPaths();
-    const QString path = paths.isEmpty() ? m_settings->rootFolder : paths.first();
 #ifdef Q_OS_WIN
     if (!paths.isEmpty()) {
         QProcess::startDetached(QStringLiteral("explorer.exe"),
-                                {QStringLiteral("/select,"), QDir::toNativeSeparators(path)});
+                                {QStringLiteral("/select,"), QDir::toNativeSeparators(paths.first())});
         return;
     }
 #endif
-    QDesktopServices::openUrl(QUrl::fromLocalFile(paths.isEmpty() ? path : QFileInfo(path).absolutePath()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(paths.isEmpty() ? m_settings->rootFolder
+                                                                  : QFileInfo(paths.first()).absolutePath()));
 }
 
 void LibraryPage::renameSelected()
@@ -286,6 +540,7 @@ void LibraryPage::renameSelected()
         QMessageBox::warning(this, tr("Имя занято"), tr("Файл с таким именем уже есть."));
         return;
     }
+    releaseFromPlayer(paths);
     if (!QFile::rename(fi.absoluteFilePath(), target)) {
         QMessageBox::warning(this, tr("Не удалось переименовать"),
                              tr("Файл открыт в другой программе или нет прав на запись."));
@@ -296,7 +551,7 @@ void LibraryPage::renameSelected()
         saveFavorites();
     }
     refresh();
-    selectPath(target);
+    selectPath(target); // reopens it in the player
 }
 
 void LibraryPage::deleteSelected()
@@ -310,6 +565,7 @@ void LibraryPage::deleteSelected()
     if (QMessageBox::question(this, tr("Удаление"), question + QStringLiteral("\n\n") +
                                   tr("Файлы будут перемещены в Корзину.")) != QMessageBox::Yes)
         return;
+    releaseFromPlayer(paths);
     QStringList failed;
     for (const QString &p : paths) {
         if (!QFile::moveToTrash(p)) {
@@ -326,7 +582,8 @@ void LibraryPage::deleteSelected()
     }
     saveFavorites();
     if (!failed.isEmpty())
-        QMessageBox::warning(this, tr("Не всё удалено"), tr("Не удалены: %1").arg(failed.join(QStringLiteral(", "))));
+        QMessageBox::warning(this, tr("Не всё удалено"),
+                             tr("Не удалены (файл занят другой программой?): %1").arg(failed.join(QStringLiteral(", "))));
     refresh();
 }
 
@@ -343,6 +600,7 @@ void LibraryPage::toggleFavorite()
         item->setData(ColFav, kSortRole, on ? 1 : 0);
     }
     saveFavorites();
+    applyFilters();
 }
 
 } // namespace otl

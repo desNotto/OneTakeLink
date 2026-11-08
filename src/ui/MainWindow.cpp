@@ -91,6 +91,8 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     hotkey(QKeySequence(Qt::Key_Space), [this] {
         if (m_tabs->currentWidget() == m_shoot || m_fullscreen)
             m_shoot->toggleRecording();
+        else if (m_tabs->currentWidget() == m_library)
+            m_library->togglePlay();
     });
     hotkey(QKeySequence(Qt::Key_F11), [this] { toggleFullscreen(); });
     hotkey(QKeySequence(Qt::Key_Escape), [this] { exitFullscreen(); });
