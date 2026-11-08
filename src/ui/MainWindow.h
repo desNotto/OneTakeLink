@@ -6,7 +6,7 @@
 #include <QMainWindow>
 
 class QLabel;
-class QTabWidget;
+class QSplitter;
 
 namespace otl {
 
@@ -28,9 +28,20 @@ private:
     void exitFullscreen();
     void recoverInterruptedTakes();
     void showAbout();
+    QWidget *pane(const QString &caption, QWidget *content, QLabel **captionOut = nullptr);
+    void saveLayout();
+    void restoreLayout();
 
     AppSettings m_settings;
-    QTabWidget *m_tabs = nullptr;
+    QWidget *m_topBar = nullptr;
+    QWidget *m_playerPane = nullptr;
+    QWidget *m_monitorPane = nullptr;
+    QLabel *m_monitorCaption = nullptr;
+    QWidget *m_inspector = nullptr;
+    QWidget *m_poolPane = nullptr;
+    QSplitter *m_rootSplit = nullptr;   // [work area | inspector]
+    QSplitter *m_workSplit = nullptr;   // [viewers / media pool]
+    QSplitter *m_viewerSplit = nullptr; // [player | monitor]
     ShootPage *m_shoot = nullptr;
     LibraryPage *m_library = nullptr;
     QLabel *m_sbSource = nullptr;

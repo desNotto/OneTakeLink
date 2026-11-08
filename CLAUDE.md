@@ -15,7 +15,7 @@ and the README are in **Russian**; code, comments and commits in English.
 | Preview | `src/preview/` | `PreviewWidget` (QOpenGLWidget, NV12/I420 → RGB shader, QPainter overlays), `CropMath.h` shared with export |
 | Recording | `src/recording/` | `Recorder` (passthrough remux, worker thread, GOP pre-roll), `Mp4Writer`, `TakeNamer` |
 | Library | `src/library/`, `src/ui/LibraryPage.*`, `src/ui/PlayerPanel.*` | `MediaProbe`, `Thumbnailer` (disk cache in CacheLocation/thumbs), `VideoPlayer` (worker thread, pts-paced, exact seek / frame step, feeds a `PreviewWidget`) |
-| UI | `src/ui/` | `MainWindow`, `ShootPage`, `Style` |
+| UI | `src/ui/` | `MainWindow` (single screen: splitters [player │ monitor] / media pool │ inspector), `ShootPage` and `LibraryPage` are hidden logic owners that hand their widgets to MainWindow, `Style` |
 | CLI | `tools/otl_cli.cpp` | `otl-cli devices|monitor|record|recover` |
 
 Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_tests`.
@@ -36,6 +36,9 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
 - Signals from worker threads (std::thread) reach the UI queued — always
   connect with a receiver/context object.
 - Show only real camera controls (spec §5.2): gate on STATE fields.
+- Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`.
+- Media pool = one QStandardItemModel + TakeFilterModel proxy shown by a
+  thumbnail QListView and a detail QTreeView sharing one selection model.
 - No telemetry, no network except the phone link.
 - Brand palette (`src/ui/Style.cpp`): Cetacean Blue `#150A35` surfaces,
   Lavender `#A577FF` accent, Ghost White `#F5F7FC` text; REC stays red.

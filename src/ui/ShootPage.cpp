@@ -127,11 +127,10 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
     m_source->setFrameSink(m_preview);
     m_source->setPacketSink(m_recorder);
 
-    auto *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-    layout->addWidget(m_preview, 1);
-    layout->addWidget(buildPanel());
+    // No layout of its own: MainWindow places the monitor and the
+    // inspector panel in its single-screen layout (monitorWidget(),
+    // inspectorWidget()); this object keeps the logic.
+    buildPanel();
 
     for (QLabel *l : {m_statusLabel, m_hintLabel, m_folderLabel, m_nextNameLabel, m_durationLabel,
                       m_savedLabel, m_diskLabel, m_infoDevice, m_infoResolution, m_infoFps, m_infoCodec,
@@ -851,6 +850,7 @@ void ShootPage::chooseFolder()
     }
     m_settings->rootFolder = dir;
     m_settings->save();
+    emit rootFolderChanged();
     updateNextName();
     updateDiskInfo();
 }
@@ -891,6 +891,16 @@ void ShootPage::updateDiskInfo()
 void ShootPage::setControlsVisible(bool visible)
 {
     m_panel->setVisible(visible);
+}
+
+QWidget *ShootPage::monitorWidget() const
+{
+    return m_preview;
+}
+
+QWidget *ShootPage::inspectorWidget() const
+{
+    return m_panel;
 }
 
 QString ShootPage::sessionFolderHint() const

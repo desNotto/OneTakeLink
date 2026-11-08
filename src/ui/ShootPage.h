@@ -42,10 +42,13 @@ public:
     void shutdown();                       // stop source before teardown
     void connectTo(const QString &deviceKey); // e.g. "usb:" or "wifi:192.168.1.5"
     QString sessionFolderHint() const;
+    QWidget *monitorWidget() const;
+    QWidget *inspectorWidget() const;
 
 signals:
     void takeSaved(const QString &path);
     void requestFullscreen();
+    void rootFolderChanged();
     void statusSummary(const QString &source, const QString &stream, const QString &rec,
                        const QString &disk);
 

@@ -131,6 +131,29 @@ QScrollBar::handle:horizontal { background: #3A2B78; border-radius: 4px; min-wid
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 
+/* Single-screen layout */
+QWidget#topBar { background: #0F0828; border-bottom: 1px solid #22165A; }
+QWidget#pane, QWidget#mediaPoolPane { background: #170C3C; border: 1px solid #2D2066; border-radius: 10px; }
+QWidget#pane QLabel, QWidget#mediaPoolPane QLabel, QWidget#mediaPoolPane QCheckBox { background: transparent; }
+QLabel#paneCaption { color: #C9B2FF; font-weight: 700; font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; }
+QSplitter::handle { background: transparent; }
+QSplitter::handle:hover { background: #3A2B78; }
+QPushButton#viewToggle { padding: 4px 10px; font-size: 15px; }
+QPushButton#viewToggle:checked { background: #3A2B78; border-color: @LAVENDER@; color: @GHOST@; }
+QListView#mediaPool { background: #0F0828; border: 1px solid #2D2066; border-radius: 8px; padding: 6px; color: @GHOST@; }
+QListView#mediaPool::item { border-radius: 8px; padding: 4px; color: #D9D4EE; }
+QListView#mediaPool::item:hover { background: #22165A; }
+QListView#mediaPool::item:selected { background: #3A2B78; color: @GHOST@; }
+QTreeView#mediaTable { background: #0F0828; alternate-background-color: #140B34; border: 1px solid #2D2066;
+                       border-radius: 8px; color: @GHOST@; }
+QTreeView#mediaTable::item:selected { background: #3A2B78; color: @GHOST@; }
+QScrollArea#sidePanel { border: 1px solid #2D2066; border-radius: 10px; }
+QMenu { background: #120A30; border: 1px solid #3A2B78; color: @GHOST@; padding: 4px; }
+QMenu::item { padding: 6px 22px 6px 14px; border-radius: 5px; }
+QMenu::item:selected { background: #3A2B78; }
+QMenu::item:disabled { color: #5E5786; }
+QMenu::separator { height: 1px; background: #2D2066; margin: 4px 8px; }
+
 /* Library player */
 QLabel#playerTitle { font-weight: 700; font-size: 14px; color: @GHOST@; }
 QLabel#playerTime { font-family: Consolas, "DejaVu Sans Mono", monospace; color: #C9B2FF; }
@@ -141,7 +164,6 @@ QPushButton#playButton:hover { background: #BE9BFF; }
 QPushButton#playButton:disabled { background: #2A1E5C; }
 QSlider#timeline::groove:horizontal { height: 6px; border-radius: 3px; }
 QSlider#timeline::handle:horizontal { width: 16px; height: 16px; margin: -6px 0; border-radius: 8px; }
-QSplitter::handle { background: transparent; width: 10px; }
 
 /* Status bar, dialogs */
 QStatusBar { background: #0F0828; color: #A9A3C7; border-top: 1px solid #22165A; }

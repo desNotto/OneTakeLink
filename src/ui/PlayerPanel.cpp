@@ -147,7 +147,7 @@ PlayerPanel::PlayerPanel(QWidget *parent) : QWidget(parent)
     };
     m_start = button(Glyph::Start, tr("В начало (Home)"));
     m_prev = button(Glyph::Prev, tr("Предыдущий кадр ( , )"));
-    m_play = button(Glyph::Play, tr("Воспроизвести / пауза (Space)"));
+    m_play = button(Glyph::Play, tr("Воспроизвести / пауза (K)"));
     m_play->setObjectName(QStringLiteral("playButton"));
     m_next = button(Glyph::Next, tr("Следующий кадр ( . )"));
     m_external = new QPushButton(tr("Внешний плеер"));
