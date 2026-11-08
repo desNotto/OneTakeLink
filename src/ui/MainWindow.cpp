@@ -5,6 +5,7 @@
 #include "PlayerPanel.h"
 #include "ShootPage.h"
 #include "core/Version.h"
+#include "library/Thumbnailer.h"
 #include "recording/Recorder.h"
 
 #include <QApplication>
@@ -218,6 +219,10 @@ void MainWindow::recoverInterruptedTakes()
     const QString root = m_settings.rootFolder;
     QPointer<MainWindow> self(this);
     std::thread([self, root] {
+        // Housekeeping: keep the thumbnail cache bounded (age + size).
+        const qint64 freed = pruneThumbnailCache();
+        if (freed > 0)
+            qInfo("thumbnail cache: freed %lld KB", static_cast<long long>(freed / 1024));
         const QStringList recovered = Recorder::recoverInterrupted(root);
         if (recovered.isEmpty())
             return;

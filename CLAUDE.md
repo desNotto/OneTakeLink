@@ -1,6 +1,6 @@
 # OneTakeLink — notes for development sessions
 
-Windows desktop app (C++20, Qt 6 Widgets, FFmpeg) that records guitar takes
+Windows desktop app (C++20, Qt 6 Widgets, FFmpeg) that records video takes
 from an iPhone running the official **LensLink Camera** app. Spec (Russian):
 `docs/spec/Technical_Specification_OneTakeLink_v1.0.txt`. User-facing text
 and the README are in **Russian**; code, comments and commits in English.
@@ -36,6 +36,12 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
 - Signals from worker threads (std::thread) reach the UI queued — always
   connect with a receiver/context object.
 - Show only real camera controls (spec §5.2): gate on STATE fields.
+- App data lives in `%LOCALAPPDATA%\OneTakeLink\OneTakeLink\` (settings.ini,
+  `cache\thumbs`, `logs`). Everything written there must clean itself up:
+  thumbnails are removed with their take and pruned at startup (60 days /
+  256 MB), logs keep 2 sessions capped at 10 MB. README "Data on disk"
+  documents it — keep that table in sync.
+- README is a dry functional description in RU + EN; keep both in sync.
 - Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`.
 - Media pool = one QStandardItemModel + TakeFilterModel proxy shown by a
   thumbnail QListView and a detail QTreeView sharing one selection model.

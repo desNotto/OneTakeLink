@@ -20,6 +20,9 @@ namespace otl {
 namespace {
 QFile *g_file = nullptr;
 QMutex g_mutex;
+// One session's log never grows past this (a flood of decoder warnings
+// must not fill the disk); only this and the previous session are kept.
+constexpr qint64 kMaxLogBytes = 10LL * 1024 * 1024;
 
 void handler(QtMsgType type, const QMessageLogContext &, const QString &msg)
 {
@@ -36,8 +39,16 @@ void handler(QtMsgType type, const QMessageLogContext &, const QString &msg)
                                   QLatin1String(level), msg);
     QMutexLocker lock(&g_mutex);
     if (g_file) {
-        g_file->write(line.toUtf8());
-        g_file->flush();
+        if (g_file->size() < kMaxLogBytes) {
+            g_file->write(line.toUtf8());
+        } else {
+            g_file->write("... log size limit reached, further messages are not saved\n");
+            g_file->close();
+            delete g_file;
+            g_file = nullptr;
+        }
+        if (g_file)
+            g_file->flush();
     }
     fputs(line.toLocal8Bit().constData(), stderr);
 }

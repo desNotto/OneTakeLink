@@ -4,6 +4,7 @@
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
 
@@ -95,24 +96,96 @@ QImage renderThumbnail(const QString &videoPath, int width)
     return result;
 }
 
+namespace {
+
+QString pathPrefix(const QString &videoPath)
+{
+    const QByteArray key = QFileInfo(videoPath).absoluteFilePath().toUtf8();
+    return QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
+}
+
+} // namespace
+
+void removeThumbnails(const QString &videoPath)
+{
+    QDir dir(thumbnailCacheDir());
+    const QStringList files = dir.entryList({pathPrefix(videoPath) + QStringLiteral("-*.jpg")}, QDir::Files);
+    for (const QString &f : files)
+        dir.remove(f);
+}
+
+qint64 thumbnailCacheSize()
+{
+    qint64 total = 0;
+    const QFileInfoList files = QDir(thumbnailCacheDir()).entryInfoList(QDir::Files);
+    for (const QFileInfo &fi : files)
+        total += fi.size();
+    return total;
+}
+
+void clearThumbnailCache()
+{
+    QDir(thumbnailCacheDir()).removeRecursively();
+}
+
+qint64 pruneThumbnailCache(int maxAgeDays, qint64 maxBytes)
+{
+    QDir dir(thumbnailCacheDir());
+    if (!dir.exists())
+        return 0;
+    // Oldest use first.
+    QFileInfoList files = dir.entryInfoList(QDir::Files, QDir::Time | QDir::Reversed);
+    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-maxAgeDays);
+    qint64 total = 0;
+    for (const QFileInfo &fi : files)
+        total += fi.size();
+    qint64 freed = 0;
+    for (const QFileInfo &fi : files) {
+        const bool stale = fi.lastModified() < cutoff;
+        const bool overBudget = total > maxBytes;
+        // Anything that isn't a current-format thumbnail (e.g. v0.2 names
+        // without the path prefix) doesn't belong here.
+        const bool foreign = fi.suffix() != QLatin1String("jpg") || fi.fileName().size() != 40 + 1 + 40 + 4 ||
+                             fi.fileName().at(40) != QLatin1Char('-');
+        if (!stale && !overBudget && !foreign)
+            continue;
+        if (QFile::remove(fi.absoluteFilePath())) {
+            total -= fi.size();
+            freed += fi.size();
+        }
+    }
+    return freed;
+}
+
 QImage takeThumbnail(const QString &videoPath, int width)
 {
     const QFileInfo fi(videoPath);
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4")
-                               .arg(fi.absoluteFilePath())
-                               .arg(fi.size())
-                               .arg(fi.lastModified().toMSecsSinceEpoch())
-                               .arg(width)
-                               .toUtf8();
-    const QString name = QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex()) +
+    const QString prefix = pathPrefix(videoPath);
+    const QByteArray version = QStringLiteral("%1|%2|%3")
+                                   .arg(fi.size())
+                                   .arg(fi.lastModified().toMSecsSinceEpoch())
+                                   .arg(width)
+                                   .toUtf8();
+    const QString name = prefix + QLatin1Char('-') +
+                         QString::fromLatin1(QCryptographicHash::hash(version, QCryptographicHash::Sha1).toHex()) +
                          QStringLiteral(".jpg");
-    const QString cached = QDir(thumbnailCacheDir()).filePath(name);
+    QDir dir(thumbnailCacheDir());
+    const QString cached = dir.filePath(name);
     QImage img;
-    if (img.load(cached))
+    if (img.load(cached)) {
+        // Touch: pruning keeps recently used thumbnails.
+        QFile f(cached);
+        if (f.open(QIODevice::ReadWrite))
+            f.setFileTime(QDateTime::currentDateTime(), QFileDevice::FileModificationTime);
         return img;
+    }
     img = renderThumbnail(videoPath, width);
     if (!img.isNull()) {
-        QDir().mkpath(thumbnailCacheDir());
+        dir.mkpath(QStringLiteral("."));
+        // The take changed (or another size was cached): replace old versions.
+        const QStringList old = dir.entryList({prefix + QStringLiteral("-*.jpg")}, QDir::Files);
+        for (const QString &f : old)
+            dir.remove(f);
         img.save(cached, "JPG", 85);
     }
     return img;

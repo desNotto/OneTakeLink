@@ -428,6 +428,21 @@ void LibraryPage::refresh()
         for (auto it = m_cache.begin(); it != m_cache.end();)
             it = present.contains(it.key()) ? std::next(it) : m_cache.erase(it);
 
+        // Forget favourites of takes deleted outside the app. Only when the
+        // folder is still there: a disconnected drive must not wipe them.
+        bool favChanged = false;
+        for (auto it = m_favorites.begin(); it != m_favorites.end();) {
+            const QFileInfo fi(*it);
+            if (!fi.exists() && QDir(fi.absolutePath()).exists()) {
+                it = m_favorites.erase(it);
+                favChanged = true;
+            } else {
+                ++it;
+            }
+        }
+        if (favChanged)
+            saveFavorites();
+
         projects.sort(Qt::CaseInsensitive);
         rebuildProjectFilter(projects);
         applyFilters();
@@ -661,6 +676,8 @@ void LibraryPage::renameSelected()
                              tr("Файл открыт в другой программе или нет прав на запись."));
         return;
     }
+    removeThumbnails(fi.absoluteFilePath());
+    m_cache.remove(fi.absoluteFilePath());
     if (m_favorites.remove(fi.absoluteFilePath())) {
         m_favorites.insert(target);
         saveFavorites();
@@ -694,6 +711,8 @@ void LibraryPage::deleteSelected()
             }
         }
         m_favorites.remove(p);
+        removeThumbnails(p);
+        m_cache.remove(p);
     }
     saveFavorites();
     if (!failed.isEmpty())
