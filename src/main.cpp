@@ -8,6 +8,7 @@
 #include "ui/Style.h"
 
 #include <QApplication>
+#include <QIcon>
 #include <QSurfaceFormat>
 
 int main(int argc, char *argv[])
@@ -24,6 +25,10 @@ int main(int argc, char *argv[])
     qRegisterMetaType<otl::StreamStats>();
     qRegisterMetaType<QList<otl::DeviceInfo>>();
 
+    QIcon icon;
+    for (int size : {16, 32, 64, 128, 256})
+        icon.addFile(QStringLiteral(":/icons/onetakelink-%1.png").arg(size), QSize(size, size));
+    QApplication::setWindowIcon(icon);
     otl::applyStyle(app);
 
     otl::MainWindow window;

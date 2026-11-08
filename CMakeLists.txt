@@ -87,6 +87,18 @@ if(WIN32)
 endif()
 
 qt_add_executable(OneTakeLink WIN32 ${APP_SOURCES})
+qt_add_resources(OneTakeLink "icons"
+    PREFIX "/icons"
+    BASE assets/icon
+    FILES
+        assets/icon/onetakelink-16.png
+        assets/icon/onetakelink-32.png
+        assets/icon/onetakelink-64.png
+        assets/icon/onetakelink-128.png
+        assets/icon/onetakelink-256.png
+        assets/icon/check.png
+        assets/icon/check@2x.png
+)
 target_link_libraries(OneTakeLink PRIVATE
     otl_core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
 

@@ -65,6 +65,31 @@ double aspectValue(const QString &key)
 
 const char *kManualIpKey = "wifi-manual";
 
+// Scrolling the side panel must not change a combo box or slider the
+// cursor happens to pass over (e.g. the iPhone's format or zoom): the
+// wheel only adjusts a control after it was clicked; otherwise it
+// scrolls the panel.
+class WheelGuard : public QObject {
+public:
+    WheelGuard(QWidget *scrollTarget, QObject *parent) : QObject(parent), m_target(scrollTarget) {}
+
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override
+    {
+        if (event->type() == QEvent::Wheel) {
+            auto *w = qobject_cast<QWidget *>(obj);
+            if (w && !w->hasFocus()) {
+                QCoreApplication::sendEvent(m_target, event);
+                return true;
+            }
+        }
+        return QObject::eventFilter(obj, event);
+    }
+
+private:
+    QWidget *m_target;
+};
+
 } // namespace
 
 ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), m_settings(settings)
@@ -84,6 +109,15 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
     layout->setSpacing(0);
     layout->addWidget(m_preview, 1);
     layout->addWidget(buildPanel());
+
+    auto *guard = new WheelGuard(m_panel->viewport(), this);
+    const auto guarded = m_panel->widget()->findChildren<QWidget *>();
+    for (QWidget *w : guarded) {
+        if (qobject_cast<QComboBox *>(w) || qobject_cast<QSlider *>(w)) {
+            w->setFocusPolicy(Qt::StrongFocus);
+            w->installEventFilter(guard);
+        }
+    }
 
     connect(m_source, &CameraSource::statusChanged, this, &ShootPage::onStatus);
     connect(m_source, &CameraSource::statsChanged, this, &ShootPage::onStats);
@@ -511,16 +545,16 @@ void ShootPage::onStatus(const SourceStatus &status)
     QString color;
     switch (status.state) {
     case SourceState::Streaming:
-        color = QStringLiteral("#3ecf6e");
+        color = QStringLiteral("#4ade80");
         break;
     case SourceState::Error:
-        color = QStringLiteral("#ff6b6b");
+        color = QStringLiteral("#ff5c6c");
         break;
     case SourceState::Idle:
-        color = QStringLiteral("#9aa0a6");
+        color = QStringLiteral("#a9a3c7");
         break;
     default:
-        color = QStringLiteral("#f0b429");
+        color = QStringLiteral("#fbbf24");
         break;
     }
     const QString msg = status.message.isEmpty() ? tr("Не подключено") : status.message;
@@ -553,7 +587,7 @@ void ShootPage::onStats(const StreamStats &st)
     if (st.nominalFps > 0)
         fps += tr(" (заявлено %1)").arg(st.nominalFps, 0, 'g', 4);
     const bool lowFps = st.nominalFps > 0 && st.fpsReceived < st.nominalFps * 0.9;
-    m_infoFps->setText(lowFps ? QStringLiteral("<span style='color:#f0b429'>%1</span>").arg(fps) : fps);
+    m_infoFps->setText(lowFps ? QStringLiteral("<span style='color:#fbbf24'>%1</span>").arg(fps) : fps);
     m_infoCodec->setText(st.codec);
     m_infoBitrate->setText(QStringLiteral("%1 Мбит/с").arg(st.mbps, 0, 'f', 1));
     m_infoMissing->setText(st.framesMissing == 0
@@ -688,6 +722,7 @@ void ShootPage::startRecordingNow()
         return;
     }
     m_currentTake = path;
+    m_nextNameLabel->setText(tr("Записывается: %1").arg(QFileInfo(path).fileName()));
 }
 
 void ShootPage::stopRecordingAndWait()
@@ -718,6 +753,7 @@ void ShootPage::onRecorderState(Recorder::State state)
         m_recButton->setProperty("recording", true);
         m_preview->setRecording(true, QStringLiteral("REC …"));
         m_recSummary = tr("Начинаем запись…");
+        m_nextNameLabel->setText(tr("Записывается: %1").arg(QFileInfo(m_currentTake).fileName()));
         break;
     case Recorder::State::Recording:
         m_recButton->setText(tr("■ STOP  (Space)"));

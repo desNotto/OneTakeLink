@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- OneTakeLink app icon. Palette: Cetacean Blue #150A35, Lavender #A577FF, Ghost White #F5F7FC -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A1670"/>
+      <stop offset="0.55" stop-color="#150A35"/>
+      <stop offset="1" stop-color="#0B0620"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.9" cy="0.95" r="0.6">
+      <stop offset="0" stop-color="#A577FF" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#A577FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lav" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C6A6FF"/>
+      <stop offset="1" stop-color="#A577FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="14" width="200" height="228" rx="42" fill="url(#tile)"/>
+  <rect x="28" y="14" width="200" height="228" rx="42" fill="url(#glow)"/>
+  <rect x="29" y="15" width="198" height="226" rx="41" fill="none" stroke="#A577FF" stroke-opacity="0.35" stroke-width="2"/>
+  <!-- camera -->
+  <rect x="72" y="47" width="84" height="79" rx="13" fill="#F5F7FC"/>
+  <path d="M150 80 L182 60 Q188 57 188 64 L188 109 Q188 116 182 113 L150 93 Z" fill="#F5F7FC"/>
+  <!-- wave -->
+  <path d="M34 152 C44 143 54 140 66 140 C86 140 98 156 118 156 C140 156 152 142 173 142 C194 142 208 146 220 153"
+        fill="none" stroke="url(#lav)" stroke-width="8" stroke-linecap="round"/>
+  <!-- chain: two woven links (each passes over the other once); the
+       tile-coloured cuts are clipped to the other link so they leave no halo -->
+  <clipPath id="link1area"><rect x="-46" y="-18" width="62" height="36" rx="18"/></clipPath>
+  <clipPath id="link2upper">
+    <path d="M-16 -18 H42 A18 18 0 0 1 46 0 H-16 Z"/>
+  </clipPath>
+  <g fill="none" stroke-width="7" transform="translate(124 197) rotate(-24)">
+    <rect x="-42" y="-14" width="54" height="28" rx="14" stroke="url(#lav)"/>
+    <rect x="-12" y="-14" width="54" height="28" rx="14" stroke="#150A35" stroke-width="14" clip-path="url(#link1area)"/>
+    <rect x="-12" y="-14" width="54" height="28" rx="14" stroke="url(#lav)"/>
+    <g clip-path="url(#link2upper)">
+      <rect x="-42" y="-14" width="54" height="28" rx="14" stroke="#150A35" stroke-width="14"/>
+      <rect x="-42" y="-14" width="54" height="28" rx="14" stroke="url(#lav)"/>
+    </g>
+  </g>
+</svg>

@@ -233,7 +233,7 @@ void PreviewWidget::paintGL()
         m_shown = std::move(next);
     }
 
-    glClearColor(0.07f, 0.07f, 0.08f, 1.0f);
+    glClearColor(0x0D / 255.0f, 0x09 / 255.0f, 0x21 / 255.0f, 1.0f); // brand surround
     glClear(GL_COLOR_BUFFER_BIT);
 
     QRectF video;
@@ -272,7 +272,7 @@ void PreviewWidget::paintGL()
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     if (video.isEmpty()) {
-        p.setPen(QColor(150, 150, 160));
+        p.setPen(QColor(0xA9, 0xA3, 0xC7));
         QFont f = font();
         f.setPointSizeF(f.pointSizeF() * 1.3);
         p.setFont(f);
@@ -283,9 +283,9 @@ void PreviewWidget::paintGL()
     if (m_recording) {
         const QRectF badge(12, 12, 150, 30);
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(0, 0, 0, 150));
+        p.setBrush(QColor(0x15, 0x0A, 0x35, 200));
         p.drawRoundedRect(badge, 6, 6);
-        p.setBrush(QColor(230, 40, 40));
+        p.setBrush(QColor(0xFF, 0x4D, 0x5E));
         p.drawEllipse(QPointF(badge.left() + 16, badge.center().y()), 6, 6);
         p.setPen(Qt::white);
         QFont f = font();
@@ -309,8 +309,8 @@ void PreviewWidget::drawOverlays(QPainter &p, const QRectF &video)
         outside.addRect(video);
         QPainterPath inside;
         inside.addRect(crop);
-        p.fillPath(outside.subtracted(inside), QColor(0, 0, 0, 140));
-        p.setPen(QPen(QColor(255, 255, 255, 220), 1.5));
+        p.fillPath(outside.subtracted(inside), QColor(0x0D, 0x09, 0x21, 160));
+        p.setPen(QPen(QColor(0xA5, 0x77, 0xFF, 235), 2.0)); // Lavender crop frame
         p.setBrush(Qt::NoBrush);
         p.drawRect(crop);
         area = crop;

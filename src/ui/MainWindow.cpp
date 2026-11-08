@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDir>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPointer>
@@ -36,6 +37,19 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     auto *about = new QPushButton(tr("О программе"));
     about->setFlat(true);
     m_tabs->setCornerWidget(about, Qt::TopRightCorner);
+
+    auto *brand = new QWidget;
+    brand->setObjectName(QStringLiteral("brand"));
+    auto *brandLayout = new QHBoxLayout(brand);
+    brandLayout->setContentsMargins(14, 4, 18, 4);
+    brandLayout->setSpacing(8);
+    auto *logo = new QLabel;
+    logo->setPixmap(QApplication::windowIcon().pixmap(QSize(24, 24), devicePixelRatio()));
+    auto *name = new QLabel(QStringLiteral("OneTakeLink"));
+    name->setObjectName(QStringLiteral("brandName"));
+    brandLayout->addWidget(logo);
+    brandLayout->addWidget(name);
+    m_tabs->setCornerWidget(brand, Qt::TopLeftCorner);
     setCentralWidget(m_tabs);
 
     m_sbSource = new QLabel;
@@ -53,7 +67,7 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
                 m_sbSource->setText(src);
                 m_sbStream->setText(stream);
                 m_sbRec->setText(rec);
-                m_sbRec->setStyleSheet(rec.isEmpty() ? QString() : QStringLiteral("color:#ff5252;font-weight:600"));
+                m_sbRec->setStyleSheet(rec.isEmpty() ? QString() : QStringLiteral("color:#ff5c6c;font-weight:600"));
                 m_sbDisk->setText(disk);
             });
     connect(m_shoot, &ShootPage::takeSaved, this, [this](const QString &path) {
@@ -99,7 +113,8 @@ void MainWindow::toggleFullscreen()
     m_wasMaximized = isMaximized();
     m_fullscreen = true;
     m_tabs->tabBar()->hide();
-    m_tabs->cornerWidget()->hide();
+    m_tabs->cornerWidget(Qt::TopRightCorner)->hide();
+    m_tabs->cornerWidget(Qt::TopLeftCorner)->hide();
     statusBar()->hide();
     m_shoot->setControlsVisible(false);
     showFullScreen();
@@ -111,7 +126,8 @@ void MainWindow::exitFullscreen()
         return;
     m_fullscreen = false;
     m_tabs->tabBar()->show();
-    m_tabs->cornerWidget()->show();
+    m_tabs->cornerWidget(Qt::TopRightCorner)->show();
+    m_tabs->cornerWidget(Qt::TopLeftCorner)->show();
     statusBar()->show();
     m_shoot->setControlsVisible(true);
     if (m_wasMaximized)

@@ -37,6 +37,10 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   connect with a receiver/context object.
 - Show only real camera controls (spec §5.2): gate on STATE fields.
 - No telemetry, no network except the phone link.
+- Brand palette (`src/ui/Style.cpp`): Cetacean Blue `#150A35` surfaces,
+  Lavender `#A577FF` accent, Ghost White `#F5F7FC` text; REC stays red.
+  Icon source is `assets/icon/onetakelink.svg`; regenerate the .ico/.png with
+  `python3 assets/icon/make_icons.py` (needs rsvg-convert + Pillow).
 
 ## Build & test (Linux container)
 
