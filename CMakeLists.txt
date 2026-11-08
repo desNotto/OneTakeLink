@@ -113,6 +113,12 @@ qt_add_resources(OneTakeLink "icons"
         assets/icon/check.png
         assets/icon/check@2x.png
 )
+# English UI. Source strings are Russian; regenerate with tools/update_translations.sh.
+qt_add_resources(OneTakeLink "i18n"
+    PREFIX "/i18n"
+    BASE translations
+    FILES translations/onetakelink_en.qm
+)
 target_link_libraries(OneTakeLink PRIVATE
     otl_core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
 

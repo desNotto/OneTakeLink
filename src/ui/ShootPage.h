@@ -47,6 +47,7 @@ public:
     QString sessionFolderHint() const;
     QWidget *monitorWidget() const;
     QWidget *inspectorWidget() const;
+    QWidget *formatBar() const; // frame format + social guides, for the top bar
 
 signals:
     void takeSaved(const QString &path);
@@ -57,6 +58,7 @@ signals:
 
 private:
     QWidget *buildPanel();
+    QWidget *buildFormatBar();
     QGroupBox *buildSourceGroup();
     QGroupBox *buildStreamGroup();
     QGroupBox *buildCameraGroup();
@@ -138,7 +140,9 @@ private:
     QComboBox *m_androidCodec = nullptr;
 
     // Frame group
+    QWidget *m_formatBar = nullptr;
     QComboBox *m_aspectCombo = nullptr;
+    QComboBox *m_socialCombo = nullptr;
     QSlider *m_cropPos = nullptr;
     QCheckBox *m_guidesEnabled = nullptr;
     QCheckBox *m_thirds = nullptr;

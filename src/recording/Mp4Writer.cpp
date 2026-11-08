@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "Mp4Writer.h"
 
+#include <QCoreApplication>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -37,7 +39,7 @@ bool Mp4Writer::open(const QString &path, const StreamFormat &format, bool fragm
     }
     m_stream = avformat_new_stream(m_ctx, nullptr);
     if (!m_stream) {
-        *error = QStringLiteral("MP4: не удалось создать видеодорожку");
+        *error = QCoreApplication::translate("otl::Mp4Writer", "MP4: не удалось создать видеодорожку");
         return false;
     }
     AVCodecParameters *par = m_stream->codecpar;
@@ -70,7 +72,7 @@ bool Mp4Writer::open(const QString &path, const StreamFormat &format, bool fragm
     if (!(m_ctx->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&m_ctx->pb, utf8.constData(), AVIO_FLAG_WRITE);
         if (ret < 0) {
-            *error = QStringLiteral("Не удалось создать файл: %1").arg(avErrorString(ret));
+            *error = QCoreApplication::translate("otl::Mp4Writer", "Не удалось создать файл: %1").arg(avErrorString(ret));
             avformat_free_context(m_ctx);
             m_ctx = nullptr;
             return false;
@@ -111,7 +113,7 @@ bool Mp4Writer::write(const EncodedPacket &packet, int64_t relPtsNs, int64_t dur
     // The muxer may rewrite the data in place (Annex B -> length
     // prefixed), so hand it its own copy.
     if (av_new_packet(m_pkt, int(packet.data->size())) < 0) {
-        *error = QStringLiteral("Недостаточно памяти");
+        *error = QCoreApplication::translate("otl::Mp4Writer", "Недостаточно памяти");
         return false;
     }
     std::memcpy(m_pkt->data, packet.data->data(), packet.data->size());
@@ -124,7 +126,7 @@ bool Mp4Writer::write(const EncodedPacket &packet, int64_t relPtsNs, int64_t dur
     int ret = av_write_frame(m_ctx, m_pkt);
     av_packet_unref(m_pkt);
     if (ret < 0) {
-        *error = QStringLiteral("Ошибка записи файла: %1").arg(avErrorString(ret));
+        *error = QCoreApplication::translate("otl::Mp4Writer", "Ошибка записи файла: %1").arg(avErrorString(ret));
         return false;
     }
     return true;

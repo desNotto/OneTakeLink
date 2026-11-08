@@ -137,7 +137,7 @@ void Recorder::run()
             if (m_writer && m_formatValid &&
                 (item.format.codec != m_format.codec || item.format.width != m_format.width ||
                  item.format.height != m_format.height)) {
-                finish(tr("Формат видео с iPhone изменился во время записи — дубль сохранён до "
+                finish(tr("Формат видео с телефона изменился во время записи — дубль сохранён до "
                           "этого момента."));
             }
             m_format = item.format;
@@ -336,7 +336,7 @@ bool Recorder::remux(const QString &in, const QString &out, QString *error)
                 av_packet_unref(pkt);
             }
             if (ok && packets == 0) {
-                *error = QStringLiteral("в файле нет кадров");
+                *error = tr("в файле нет кадров");
                 ok = false;
             }
             if (av_write_trailer(octx) < 0)
@@ -346,7 +346,7 @@ bool Recorder::remux(const QString &in, const QString &out, QString *error)
         }
         avio_closep(&octx->pb);
     } else {
-        *error = QStringLiteral("не удалось создать %1").arg(out);
+        *error = tr("не удалось создать %1").arg(out);
     }
     av_packet_free(&pkt);
     avformat_free_context(octx);

@@ -5,6 +5,7 @@
 
 #include <QMainWindow>
 
+class QComboBox;
 class QLabel;
 class QSplitter;
 
@@ -28,6 +29,8 @@ private:
     void exitFullscreen();
     void recoverInterruptedTakes();
     void showAbout();
+    void changeLanguage();
+    QString currentLanguage() const;
     QWidget *pane(const QString &caption, QWidget *content, QLabel **captionOut = nullptr);
     void saveLayout();
     void restoreLayout();
@@ -48,6 +51,8 @@ private:
     QLabel *m_sbStream = nullptr;
     QLabel *m_sbRec = nullptr;
     QLabel *m_sbDisk = nullptr;
+    QComboBox *m_languageCombo = nullptr;
+    bool m_restartRequested = false;
     bool m_fullscreen = false;
     bool m_wasMaximized = false;
 };

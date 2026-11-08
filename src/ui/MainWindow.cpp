@@ -10,6 +10,9 @@
 #include "recording/Recorder.h"
 
 #include <QApplication>
+#include <QComboBox>
+#include <QLocale>
+#include <QProcess>
 #include <QCloseEvent>
 #include <QDir>
 #include <QHBoxLayout>
@@ -42,18 +45,28 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     m_topBar = new QWidget;
     m_topBar->setObjectName(QStringLiteral("topBar"));
     auto *top = new QHBoxLayout(m_topBar);
-    top->setContentsMargins(14, 6, 10, 6);
-    top->setSpacing(8);
+    top->setContentsMargins(12, 6, 10, 6);
+    top->setSpacing(10);
     auto *logo = new QLabel;
-    logo->setPixmap(QApplication::windowIcon().pixmap(QSize(24, 24), devicePixelRatio()));
+    logo->setPixmap(QApplication::windowIcon().pixmap(QSize(44, 44), devicePixelRatio()));
     auto *name = new QLabel(QStringLiteral("OneTakeLink"));
     name->setObjectName(QStringLiteral("brandName"));
+
+    m_languageCombo = new QComboBox;
+    m_languageCombo->addItem(QStringLiteral("RU"), QStringLiteral("ru"));
+    m_languageCombo->addItem(QStringLiteral("EN"), QStringLiteral("en"));
+    m_languageCombo->setToolTip(tr("Язык интерфейса"));
+    m_languageCombo->setCurrentIndex(std::max(0, m_languageCombo->findData(currentLanguage())));
+
     auto *about = new QPushButton(tr("О программе"));
     about->setFlat(true);
     about->setFocusPolicy(Qt::NoFocus);
     top->addWidget(logo);
     top->addWidget(name);
+    top->addSpacing(28);
+    top->addWidget(m_shoot->formatBar());
     top->addStretch(1);
+    top->addWidget(m_languageCombo);
     top->addWidget(about);
 
     //  ┌ player ┬ monitor ┐┌ inspector ┐
@@ -110,6 +123,7 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     statusBar()->addPermanentWidget(m_sbDisk);
 
     connect(about, &QPushButton::clicked, this, &MainWindow::showAbout);
+    connect(m_languageCombo, &QComboBox::activated, this, &MainWindow::changeLanguage);
     connect(m_shoot, &ShootPage::statusSummary, this,
             [this](const QString &src, const QString &stream, const QString &rec, const QString &disk) {
                 m_sbSource->setText(src);
@@ -255,6 +269,35 @@ void MainWindow::closeEvent(QCloseEvent *e)
     }
     m_settings.save();
     e->accept();
+    if (m_restartRequested)
+        QProcess::startDetached(QApplication::applicationFilePath(), {});
+}
+
+QString MainWindow::currentLanguage() const
+{
+    // Resolved by main() at startup (auto -> system language).
+    return QLocale().language() == QLocale::Russian ? QStringLiteral("ru") : QStringLiteral("en");
+}
+
+void MainWindow::changeLanguage()
+{
+    const QString lang = m_languageCombo->currentData().toString();
+    if (lang == currentLanguage())
+        return;
+    if (m_shoot->isRecording()) {
+        m_languageCombo->setCurrentIndex(m_languageCombo->findData(currentLanguage()));
+        QMessageBox::information(this, tr("Идёт запись"), tr("Язык можно сменить после остановки записи."));
+        return;
+    }
+    m_settings.language = lang;
+    m_settings.save();
+    // Every widget was built with the old language: restart to apply.
+    const auto answer = QMessageBox::question(this, tr("Язык интерфейса"),
+                                              tr("Язык изменится после перезапуска программы. Перезапустить сейчас?"));
+    if (answer != QMessageBox::Yes)
+        return;
+    m_restartRequested = true;
+    close();
 }
 
 void MainWindow::showAbout()
@@ -262,12 +305,15 @@ void MainWindow::showAbout()
     QMessageBox::about(
         this, tr("О программе OneTakeLink"),
         tr("<h3>OneTakeLink %1</h3>"
-           "<p>Бесплатная программа для записи дублей с камеры iPhone на Windows.<br>"
+           "<p>Запись видео с камеры iPhone или Android-телефона на Windows: мониторинг, "
+           "запись в MP4, медиатека.<br>"
            "Без рекламы, подписок, водяных знаков и регистрации. Работает без интернета.</p>"
            "<p>Автор: desNotto</p>"
-           "<p>Видео с iPhone принимается через официальное приложение "
-           "<b>LensLink Camera</b> (App Store). Модуль подключения основан на исходном коде "
-           "<a href='https://github.com/MyNamesEMurray/LensLink'>LensLink</a> (GPL-2.0-or-later).</p>"
+           "<p>iPhone: официальное приложение <b>LensLink Camera</b> (App Store); модуль подключения "
+           "основан на коде <a href='https://github.com/MyNamesEMurray/LensLink'>LensLink</a> "
+           "(GPL-2.0-or-later).<br>"
+           "Android: сервер <a href='https://github.com/Genymobile/scrcpy'>scrcpy</a> (Apache-2.0) и adb, "
+           "Android 12+, отладка по USB.</p>"
            "<p>Лицензия: GNU GPL v3 или новее. Использует Qt (LGPLv3) и FFmpeg (GPL).</p>")
             .arg(QLatin1String(OTL_VERSION)));
 }

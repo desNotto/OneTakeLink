@@ -63,8 +63,8 @@ QString durationText(qint64 ms)
 QString sizeText(qint64 b)
 {
     if (b >= 1024LL * 1024 * 1024)
-        return QStringLiteral("%1 ГБ").arg(double(b) / (1024.0 * 1024 * 1024), 0, 'f', 2);
-    return QStringLiteral("%1 МБ").arg(double(b) / (1024.0 * 1024), 0, 'f', 1);
+        return LibraryPage::tr("%1 ГБ").arg(double(b) / (1024.0 * 1024 * 1024), 0, 'f', 2);
+    return LibraryPage::tr("%1 МБ").arg(double(b) / (1024.0 * 1024), 0, 'f', 1);
 }
 
 QString fpsText(double fps)

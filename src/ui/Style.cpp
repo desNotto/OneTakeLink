@@ -62,7 +62,9 @@ QTabBar::tab { background: transparent; padding: 11px 22px; color: #A9A3C7;
 QTabBar::tab:hover { color: @GHOST@; }
 QTabBar::tab:selected { color: @GHOST@; border-bottom: 2px solid @LAVENDER@; }
 QWidget#brand { background: #0F0828; }
-QLabel#brandName { color: @GHOST@; font-weight: 700; font-size: 15px; letter-spacing: 0.3px; }
+QLabel#brandName { color: @GHOST@; font-weight: 800; font-size: 20px; letter-spacing: 0.3px; }
+QLabel#topLabel { color: #A9A3C7; font-weight: 600; }
+QWidget#topBar QComboBox { min-height: 26px; }
 
 /* Side panel and cards */
 QScrollArea#sidePanel, QScrollArea#sidePanel > QWidget > QWidget { background: @CETACEAN@; }

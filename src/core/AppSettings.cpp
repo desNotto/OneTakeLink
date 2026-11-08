@@ -46,6 +46,8 @@ AppSettings AppSettings::load()
     a.guideCenter = s.value("guides/center", a.guideCenter).toBool();
     a.guideSafe = s.value("guides/safe", a.guideSafe).toBool();
     a.cropAspect = s.value("guides/aspect", a.cropAspect).toString();
+    a.socialGuide = s.value("guides/social", a.socialGuide).toString();
+    a.language = s.value("ui/language", a.language).toString();
     a.guidesEnabled = s.value("guides/enabled", a.guidesEnabled).toBool();
     a.countdownSeconds = s.value("record/countdown", a.countdownSeconds).toInt();
     return a;
@@ -73,6 +75,8 @@ void AppSettings::save() const
     s.setValue("guides/center", guideCenter);
     s.setValue("guides/safe", guideSafe);
     s.setValue("guides/aspect", cropAspect);
+    s.setValue("guides/social", socialGuide);
+    s.setValue("ui/language", language);
     s.setValue("guides/enabled", guidesEnabled);
     s.setValue("record/countdown", countdownSeconds);
 }

@@ -47,8 +47,8 @@ QString formatDuration(qint64 ms)
 QString formatBytes(qint64 b)
 {
     if (b >= 1024LL * 1024 * 1024)
-        return QStringLiteral("%1 ГБ").arg(double(b) / (1024.0 * 1024 * 1024), 0, 'f', 1);
-    return QStringLiteral("%1 МБ").arg(double(b) / (1024.0 * 1024), 0, 'f', 0);
+        return ShootPage::tr("%1 ГБ").arg(double(b) / (1024.0 * 1024 * 1024), 0, 'f', 1);
+    return ShootPage::tr("%1 МБ").arg(double(b) / (1024.0 * 1024), 0, 'f', 0);
 }
 
 double aspectValue(const QString &key)
@@ -136,6 +136,7 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
     // No layout of its own: MainWindow places the monitor and the
     // inspector panel in its single-screen layout (monitorWidget(),
     // inspectorWidget()); this object keeps the logic.
+    buildFormatBar();
     buildPanel();
 
     for (QLabel *l : {m_statusLabel, m_hintLabel, m_folderLabel, m_nextNameLabel, m_durationLabel,
@@ -203,6 +204,70 @@ void ShootPage::shutdown()
         m_android->stop();
 }
 
+QWidget *ShootPage::buildFormatBar()
+{
+    // Lives in MainWindow's top bar (formatBar()).
+    m_formatBar = new QWidget;
+    m_formatBar->setObjectName(QStringLiteral("formatBar"));
+    auto *h = new QHBoxLayout(m_formatBar);
+    h->setContentsMargins(0, 0, 0, 0);
+    h->setSpacing(8);
+
+    m_aspectCombo = new QComboBox;
+    m_aspectCombo->addItem(tr("Полный кадр"), QStringLiteral("none"));
+    m_aspectCombo->addItem(tr("16:9 — горизонтальное"), QStringLiteral("16:9"));
+    m_aspectCombo->addItem(tr("9:16 — Reels / Shorts / Stories"), QStringLiteral("9:16"));
+    m_aspectCombo->addItem(tr("4:5 — лента Instagram"), QStringLiteral("4:5"));
+    m_aspectCombo->addItem(tr("1:1 — квадрат"), QStringLiteral("1:1"));
+    m_aspectCombo->setCurrentIndex(std::max(0, m_aspectCombo->findData(m_settings->cropAspect)));
+    m_aspectCombo->setToolTip(tr("Формат кадра: рамка будущего кадрирования на мониторе. "
+                                 "Записывается всегда полный кадр."));
+
+    m_socialCombo = new QComboBox;
+    m_socialCombo->addItem(tr("Без гайдлайнов"), QStringLiteral("none"));
+    m_socialCombo->addItem(QStringLiteral("Instagram Reels"), QStringLiteral("reels"));
+    m_socialCombo->addItem(QStringLiteral("YouTube Shorts"), QStringLiteral("shorts"));
+    m_socialCombo->setCurrentIndex(std::max(0, m_socialCombo->findData(m_settings->socialGuide)));
+    m_socialCombo->setToolTip(tr("Безопасные зоны для вертикального видео 9:16.\n"
+                                 "Красные и оранжевые — там интерфейс приложения (ник, подпись, кнопки) "
+                                 "перекрывает видео.\nЗелёная — место для лиц, текста и логотипов.\n"
+                                 "Зоны приблизительные: по рекомендациям Meta и Google для 1080×1920, "
+                                 "интерфейс приложений со временем меняется."));
+
+    auto *formatLabel = new QLabel(tr("Формат"));
+    formatLabel->setObjectName(QStringLiteral("topLabel"));
+    auto *guideLabel = new QLabel(tr("Гайдлайны"));
+    guideLabel->setObjectName(QStringLiteral("topLabel"));
+    h->addWidget(formatLabel);
+    h->addWidget(m_aspectCombo);
+    h->addSpacing(12);
+    h->addWidget(guideLabel);
+    h->addWidget(m_socialCombo);
+
+    connect(m_aspectCombo, &QComboBox::currentIndexChanged, this, [this] {
+        // Platform zones only make sense for 9:16.
+        if (m_aspectCombo->currentData().toString() != QLatin1String("9:16") &&
+            m_socialCombo->currentData().toString() != QLatin1String("none")) {
+            const QSignalBlocker block(m_socialCombo);
+            m_socialCombo->setCurrentIndex(0);
+        }
+        updateGuides();
+    });
+    connect(m_socialCombo, &QComboBox::currentIndexChanged, this, [this] {
+        if (m_socialCombo->currentData().toString() != QLatin1String("none")) {
+            const QSignalBlocker block(m_aspectCombo);
+            m_aspectCombo->setCurrentIndex(m_aspectCombo->findData(QStringLiteral("9:16")));
+        }
+        updateGuides();
+    });
+    return m_formatBar;
+}
+
+QWidget *ShootPage::formatBar() const
+{
+    return m_formatBar;
+}
+
 QWidget *ShootPage::buildPanel()
 {
     auto *content = new QWidget;
@@ -229,7 +294,7 @@ QWidget *ShootPage::buildPanel()
 
 QGroupBox *ShootPage::buildSourceGroup()
 {
-    auto *g = new QGroupBox(tr("Источник — LensLink"));
+    auto *g = new QGroupBox(tr("Источник"));
     auto *v = new QVBoxLayout(g);
 
     auto *row = new QHBoxLayout;
@@ -237,7 +302,7 @@ QGroupBox *ShootPage::buildSourceGroup()
     m_deviceCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     m_deviceCombo->setMinimumContentsLength(16);
     m_refreshButton = new QPushButton(tr("Найти"));
-    m_refreshButton->setToolTip(tr("Искать iPhone по USB и в сети Wi-Fi"));
+    m_refreshButton->setToolTip(tr("Искать телефоны: iPhone по USB и Wi-Fi, Android по USB"));
     row->addWidget(m_deviceCombo, 1);
     row->addWidget(m_refreshButton);
     v->addLayout(row);
@@ -392,7 +457,7 @@ QGroupBox *ShootPage::buildAndroidGroup()
     for (const auto &m : {std::pair{"1920x1080@60", "1080p · 60 fps"}, std::pair{"1920x1080@30", "1080p · 30 fps"},
                           std::pair{"1280x720@60", "720p · 60 fps"}, std::pair{"1280x720@30", "720p · 30 fps"},
                           std::pair{"3840x2160@30", "4K · 30 fps"}})
-        m_androidMode->addItem(QString::fromLatin1(m.second), QString::fromLatin1(m.first));
+        m_androidMode->addItem(QString::fromUtf8(m.second), QString::fromLatin1(m.first));
     f->addRow(tr("Режим"), m_androidMode);
 
     m_androidBitrate = new QComboBox;
@@ -437,18 +502,10 @@ QGroupBox *ShootPage::buildFrameGroup()
     auto *v = new QVBoxLayout(g);
 
     auto *f = new QFormLayout;
-    m_aspectCombo = new QComboBox;
-    m_aspectCombo->addItem(tr("Полный кадр"), QStringLiteral("none"));
-    m_aspectCombo->addItem(tr("16:9 — горизонтальное"), QStringLiteral("16:9"));
-    m_aspectCombo->addItem(tr("9:16 — Reels / Stories"), QStringLiteral("9:16"));
-    m_aspectCombo->addItem(tr("4:5 — лента Instagram"), QStringLiteral("4:5"));
-    m_aspectCombo->addItem(tr("1:1 — квадрат"), QStringLiteral("1:1"));
-    m_aspectCombo->setCurrentIndex(std::max(0, m_aspectCombo->findData(m_settings->cropAspect)));
-    f->addRow(tr("Формат"), m_aspectCombo);
     m_cropPos = new QSlider(Qt::Horizontal);
     m_cropPos->setRange(0, 100);
     m_cropPos->setValue(50);
-    f->addRow(tr("Положение"), m_cropPos);
+    f->addRow(tr("Положение кадра"), m_cropPos);
     v->addLayout(f);
 
     auto *note = new QLabel(tr("Записывается полный кадр. Рамка показывает будущее кадрирование "
@@ -472,7 +529,6 @@ QGroupBox *ShootPage::buildFrameGroup()
 
     for (QCheckBox *b : {m_guidesEnabled, m_thirds, m_center, m_safe})
         connect(b, &QCheckBox::toggled, this, &ShootPage::updateGuides);
-    connect(m_aspectCombo, &QComboBox::currentIndexChanged, this, &ShootPage::updateGuides);
     connect(m_cropPos, &QSlider::valueChanged, this, &ShootPage::updateGuides);
     return g;
 }
@@ -749,11 +805,11 @@ void ShootPage::onStats(const StreamStats &st)
     const bool lowFps = st.nominalFps > 0 && st.fpsReceived < st.nominalFps * 0.9;
     m_infoFps->setText(lowFps ? QStringLiteral("<span style='color:#fbbf24'>%1</span>").arg(fps) : fps);
     m_infoCodec->setText(st.codec);
-    m_infoBitrate->setText(QStringLiteral("%1 Мбит/с").arg(st.mbps, 0, 'f', 1));
+    m_infoBitrate->setText(tr("%1 Мбит/с").arg(st.mbps, 0, 'f', 1));
     m_infoMissing->setText(st.framesMissing == 0
                                ? QStringLiteral("0")
-                               : QStringLiteral("%1 из %2").arg(st.framesMissing).arg(st.framesReceived + st.framesMissing));
-    m_infoLatency->setText(st.latencyMs >= 0 ? QStringLiteral("~%1 мс").arg(qRound(st.latencyMs)) : QStringLiteral("—"));
+                               : tr("%1 из %2").arg(st.framesMissing).arg(st.framesReceived + st.framesMissing));
+    m_infoLatency->setText(st.latencyMs >= 0 ? tr("~%1 мс").arg(qRound(st.latencyMs)) : QStringLiteral("—"));
     m_infoDecoder->setText(st.decoder.isEmpty() ? QStringLiteral("—") : st.decoder);
     emitSummary();
 }
@@ -820,6 +876,11 @@ void ShootPage::updateGuides()
     g.center = m_center->isChecked();
     g.safeArea = m_safe->isChecked();
     const QString aspect = m_aspectCombo->currentData().toString();
+    const QString social = m_socialCombo->currentData().toString();
+    g.social = social == QLatin1String("reels")    ? SocialGuide::InstagramReels
+               : social == QLatin1String("shorts") ? SocialGuide::YouTubeShorts
+                                                   : SocialGuide::None;
+    m_settings->socialGuide = social;
     g.cropAspect = aspectValue(aspect);
     g.cropCenterX = m_cropPos->value() / 100.0;
     m_cropPos->setEnabled(g.cropAspect > 0);
@@ -854,7 +915,7 @@ void ShootPage::toggleRecording()
     }
     if (!m_recorder->hasStream()) {
         QMessageBox::information(this, tr("Нет видео"),
-                                 tr("Сначала подключите iPhone: запись начинается, когда идёт видеопоток."));
+                                 tr("Сначала подключите телефон: запись начинается, когда идёт видеопоток."));
         return;
     }
     const int countdown = m_countdownCombo->currentData().toInt();

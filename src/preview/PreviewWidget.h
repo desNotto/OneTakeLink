@@ -15,6 +15,9 @@
 
 namespace otl {
 
+// Platform UI overlays for vertical 9:16 video.
+enum class SocialGuide { None, InstagramReels, YouTubeShorts };
+
 struct GuideSettings {
     bool thirds = true;
     bool center = false;
@@ -23,6 +26,7 @@ struct GuideSettings {
     double cropCenterX = 0.5;  // horizontal position of the crop window, 0..1
     double cropCenterY = 0.5;
     bool enabled = true;       // master switch for all overlays
+    SocialGuide social = SocialGuide::None; // drawn inside a 9:16 crop frame
 };
 
 class PreviewWidget : public QOpenGLWidget, protected QOpenGLFunctions, public VideoFrameSink {
@@ -53,6 +57,7 @@ private:
     QRectF videoRect(int frameW, int frameH) const;
     void uploadFrame(const AVFrame *f);
     void drawOverlays(QPainter &p, const QRectF &video);
+    void drawSocialZones(QPainter &p, const QRectF &frame);
 
     QMutex m_frameMutex;
     FramePtr m_pending;

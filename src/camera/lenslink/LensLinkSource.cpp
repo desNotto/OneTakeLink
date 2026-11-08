@@ -7,6 +7,7 @@
 #include "core/AnnexB.h"
 #include "core/Version.h"
 
+#include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSysInfo>
@@ -39,7 +40,6 @@ constexpr uint64_t kMs = 1000000ULL;
 constexpr uint64_t kSilenceTimeoutNs = 6000 * kMs; // app pings every ~2 s
 constexpr size_t kMaxPendingOut = 1024 * 1024;
 
-QString tr(const char *s) { return QString::fromUtf8(s); }
 
 // TCP connect with a timeout; returns a non-blocking socket.
 socket_t tcpDial(const std::string &host, uint16_t port, int timeoutMs,
@@ -128,10 +128,10 @@ bool usbmuxServiceAvailable()
 QString usbHint()
 {
 #ifdef _WIN32
-    return tr("Подключите iPhone кабелем, разблокируйте его и подтвердите «Доверять этому "
+    return QCoreApplication::translate("otl::lenslink::LensLinkSource", "Подключите iPhone кабелем, разблокируйте его и подтвердите «Доверять этому "
               "компьютеру». Нужны iTunes или Apple Devices (служба Apple Mobile Device Service).");
 #else
-    return tr("Подключите iPhone кабелем, разблокируйте его и подтвердите «Доверять этому "
+    return QCoreApplication::translate("otl::lenslink::LensLinkSource", "Подключите iPhone кабелем, разблокируйте его и подтвердите «Доверять этому "
               "компьютеру». Нужен запущенный usbmuxd.");
 #endif
 }

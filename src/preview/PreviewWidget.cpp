@@ -8,6 +8,8 @@
 #include <QPainter>
 #include <QPainterPath>
 
+#include <algorithm>
+#include <cmath>
 #include <vector>
 
 extern "C" {
@@ -314,6 +316,8 @@ void PreviewWidget::drawOverlays(QPainter &p, const QRectF &video)
         p.setBrush(Qt::NoBrush);
         p.drawRect(crop);
         area = crop;
+        if (m_guides.social != SocialGuide::None && std::abs(m_guides.cropAspect - 9.0 / 16.0) < 0.01)
+            drawSocialZones(p, crop);
     }
 
     QPen guide(QColor(255, 255, 255, 110), 1.0);
@@ -336,6 +340,70 @@ void PreviewWidget::drawOverlays(QPainter &p, const QRectF &video)
         const qreal mx = area.width() * 0.05, my = area.height() * 0.05;
         p.drawRect(area.adjusted(mx, my, -mx, -my));
     }
+}
+
+namespace {
+
+// Where the app's own UI covers a 1080x1920 (9:16) video, as fractions of
+// the frame. Approximations of the platforms' published ad guidance (Meta:
+// ~14 % top, ~35 % bottom, ~6 % sides, ~120 px button column; Google for
+// Shorts: 288 px top, 672 px bottom, 48 px left, 192 px right). The apps
+// change their layouts, so these are guides, not guarantees.
+struct SocialLayout {
+    double top, bottom, left, right; // covered margins
+    const char *name;
+};
+
+SocialLayout layoutFor(SocialGuide g)
+{
+    if (g == SocialGuide::YouTubeShorts)
+        return {288.0 / 1920, 672.0 / 1920, 48.0 / 1080, 192.0 / 1080, "YouTube Shorts"};
+    return {270.0 / 1920, 670.0 / 1920, 65.0 / 1080, 120.0 / 1080, "Instagram Reels"};
+}
+
+} // namespace
+
+void PreviewWidget::drawSocialZones(QPainter &p, const QRectF &f)
+{
+    const SocialLayout l = layoutFor(m_guides.social);
+    const qreal top = f.top() + f.height() * l.top;
+    const qreal bottom = f.bottom() - f.height() * l.bottom;
+    const qreal left = f.left() + f.width() * l.left;
+    const qreal right = f.right() - f.width() * l.right;
+
+    const QColor red(255, 70, 70, 80);     // header / caption: always covered
+    const QColor orange(255, 160, 40, 70); // buttons and side margins
+    p.setPen(Qt::NoPen);
+    p.fillRect(QRectF(f.left(), f.top(), f.width(), top - f.top()), red);
+    p.fillRect(QRectF(f.left(), bottom, f.width(), f.bottom() - bottom), red);
+    p.fillRect(QRectF(right, top, f.right() - right, bottom - top), orange);
+    p.fillRect(QRectF(f.left(), top, left - f.left(), bottom - top), orange);
+
+    const QRectF safe(left, top, right - left, bottom - top);
+    p.fillRect(safe, QColor(60, 220, 120, 28));
+    p.setPen(QPen(QColor(60, 220, 120, 220), 1.5, Qt::DashLine));
+    p.setBrush(Qt::NoBrush);
+    p.drawRect(safe);
+
+    QFont font = p.font();
+    font.setPixelSize(std::max(9, int(f.height() / 55)));
+    font.setBold(true);
+    p.setFont(font);
+    p.setPen(QColor(255, 255, 255, 220));
+    const int pad = 4;
+    p.drawText(QRectF(f.left() + pad, f.top() + pad, f.width() - 2 * pad, top - f.top() - pad),
+               Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
+               QString::fromLatin1(l.name) + QStringLiteral(" · ") + tr("интерфейс"));
+    p.drawText(QRectF(f.left() + pad, bottom + pad, f.width() - 2 * pad, f.bottom() - bottom - 2 * pad),
+               Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, tr("ник, подпись, музыка"));
+    p.save();
+    p.translate(right + (f.right() - right) / 2, top + (bottom - top) / 2);
+    p.rotate(90);
+    p.drawText(QRectF(-(bottom - top) / 2, -(f.right() - right) / 2, bottom - top, f.right() - right),
+               Qt::AlignCenter, tr("кнопки"));
+    p.restore();
+    p.setPen(QColor(120, 255, 170, 230));
+    p.drawText(safe.adjusted(pad, pad, -pad, -pad), Qt::AlignHCenter | Qt::AlignTop, tr("безопасная зона"));
 }
 
 void PreviewWidget::mouseDoubleClickEvent(QMouseEvent *e)

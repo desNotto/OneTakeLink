@@ -40,7 +40,11 @@ jobs:
         run: |
           $name = "ffmpeg-$env:FFMPEG_VERSION-full_build-shared"
           $url = "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_VERSION/$name.7z"
-          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\ffmpeg.7z"
+          # Release downloads occasionally fail transiently: retry.
+          for ($i = 1; $i -le 4; $i++) {
+            try { Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\ffmpeg.7z"; break }
+            catch { if ($i -eq 4) { throw }; Start-Sleep -Seconds (5 * $i) }
+          }
           7z x "$env:RUNNER_TEMP\ffmpeg.7z" -o"$env:RUNNER_TEMP" | Out-Null
           "FFMPEG_ROOT=$env:RUNNER_TEMP\$name" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -48,7 +52,11 @@ jobs:
         shell: pwsh
         run: |
           $name = "scrcpy-win64-v$env:SCRCPY_VERSION"
-          Invoke-WebRequest -Uri "https://github.com/Genymobile/scrcpy/releases/download/v$env:SCRCPY_VERSION/$name.zip" -OutFile "$env:RUNNER_TEMP\scrcpy.zip"
+          $url = "https://github.com/Genymobile/scrcpy/releases/download/v$env:SCRCPY_VERSION/$name.zip"
+          for ($i = 1; $i -le 4; $i++) {
+            try { Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\scrcpy.zip"; break }
+            catch { if ($i -eq 4) { throw }; Start-Sleep -Seconds (5 * $i) }
+          }
           Expand-Archive "$env:RUNNER_TEMP\scrcpy.zip" -DestinationPath "$env:RUNNER_TEMP\scrcpy"
           $dir = (Get-ChildItem "$env:RUNNER_TEMP\scrcpy" -Recurse -Filter scrcpy-server | Select-Object -First 1).DirectoryName
           foreach ($f in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','scrcpy-server') {
@@ -77,7 +85,7 @@ jobs:
           $dist = "dist\OneTakeLink"
           New-Item -ItemType Directory -Force -Path $dist | Out-Null
           Copy-Item build\OneTakeLink.exe, build\otl-cli.exe $dist
-          windeployqt --release --no-translations --no-compiler-runtime "$dist\OneTakeLink.exe"
+          windeployqt --release --translations ru --no-compiler-runtime "$dist\OneTakeLink.exe"
           Copy-Item "$env:FFMPEG_ROOT\bin\*.dll" $dist
           New-Item -ItemType Directory -Force -Path "$dist\android" | Out-Null
           foreach ($f in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','scrcpy-server') {

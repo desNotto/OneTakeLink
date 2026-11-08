@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "MediaProbe.h"
 
+#include <QCoreApplication>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -14,11 +16,11 @@ MediaInfo probeMedia(const QString &path)
     AVFormatContext *ctx = nullptr;
     const QByteArray utf8 = path.toUtf8();
     if (avformat_open_input(&ctx, utf8.constData(), nullptr, nullptr) < 0) {
-        info.error = QStringLiteral("не удалось открыть файл");
+        info.error = QCoreApplication::translate("otl::MediaProbe", "не удалось открыть файл");
         return info;
     }
     if (avformat_find_stream_info(ctx, nullptr) < 0) {
-        info.error = QStringLiteral("файл повреждён");
+        info.error = QCoreApplication::translate("otl::MediaProbe", "файл повреждён");
         avformat_close_input(&ctx);
         return info;
     }
@@ -47,7 +49,7 @@ MediaInfo probeMedia(const QString &path)
         info.durationMs = ctx->duration / 1000;
     info.ok = vs >= 0;
     if (!info.ok)
-        info.error = QStringLiteral("нет видеодорожки");
+        info.error = QCoreApplication::translate("otl::MediaProbe", "нет видеодорожки");
     avformat_close_input(&ctx);
     return info;
 }

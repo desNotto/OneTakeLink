@@ -1,7 +1,8 @@
 # OneTakeLink — notes for development sessions
 
 Windows desktop app (C++20, Qt 6 Widgets, FFmpeg) that records video takes
-from an iPhone running the official **LensLink Camera** app. Spec (Russian):
+from an iPhone running the official **LensLink Camera** app, or from an
+Android 12+ phone over adb using the bundled scrcpy server. Spec (Russian):
 `docs/spec/Technical_Specification_OneTakeLink_v1.0.txt`. User-facing text
 and the README are in **Russian**; code, comments and commits in English.
 
@@ -11,6 +12,9 @@ and the README are in **Russian**; code, comments and commits in English.
 |-------|------|-------|
 | Camera/Input | `src/camera/` | `CameraSource` = interface; everything else depends only on it and `core/VideoTypes.h` |
 | LensLink module | `src/camera/lenslink/` | `LensLinkSource` (worker thread: dial USB/Wi-Fi, protocol, decode), `VideoDecoder` (D3D11VA→DXVA2→software), `LensLinkDiscovery` |
+| Shared stream | `src/camera/StreamHandler.*`, `VideoDecoder.*` | decode for preview, passthrough packets to the recorder, stream stats — used by every source |
+| Android | `src/camera/android/` | `Adb` (bundled `android/adb.exe`, env `OTL_ADB`), `AndroidSource` (scrcpy 5.0.1 client: push server, `adb forward`, video socket; see `docs/SCRCPY_PROTOCOL.md`). `OTL_SCRCPY_VERSION` in CMake must equal `SCRCPY_VERSION` in build.yml |
+| Discovery | `src/camera/DeviceDiscovery.*` | iPhones (usbmuxd + Bonjour) + `adb devices` |
 | Ported C | `src/camera/lenslink/proto/` | from LensLink `obs-plugin/src`, GPL-2.0-or-later; keep the per-file provenance header up to date when changing them |
 | Preview | `src/preview/` | `PreviewWidget` (QOpenGLWidget, NV12/I420 → RGB shader, QPainter overlays), `CropMath.h` shared with export |
 | Recording | `src/recording/` | `Recorder` (passthrough remux, worker thread, GOP pre-roll), `Mp4Writer`, `TakeNamer` |
@@ -42,6 +46,13 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   256 MB), logs keep 2 sessions capped at 10 MB. README "Data on disk"
   documents it — keep that table in sync.
 - README is a dry functional description in RU + EN; keep both in sync.
+- UI strings are written in Russian inside `tr()` / `QCoreApplication::translate()`
+  (never raw literals); English lives in `translations/onetakelink_en.ts`.
+  After adding strings run `tools/update_translations.sh`, translate the new
+  entries in the .ts, run it again and commit .ts + .qm. Language: settings
+  `ui/language` (auto/ru/en), applied at startup; switching restarts the app.
+- Social safe zones (Reels/Shorts) are approximations in `PreviewWidget.cpp`
+  (`layoutFor`), drawn only inside a 9:16 crop frame.
 - Hotkeys: Space is always REC/STOP (spec §6.5); the take player uses K, `,` `.`.
 - Media pool = one QStandardItemModel + TakeFilterModel proxy shown by a
   thumbnail QListView and a detail QTreeView sharing one selection model.
@@ -58,6 +69,7 @@ apt-get install -y qt6-base-dev libavcodec-dev libavformat-dev libavutil-dev lib
 cmake -S . -B build -G Ninja && cmake --build build && ./build/otl_tests
 python3 tools/fake_phone.py &            # fake LensLink Camera on :9979
 ./build/otl-cli record wifi:127.0.0.1 /tmp/t.mp4 5
+OTL_ADB=$PWD/tools/fake_adb.py OTL_SCRCPY_SERVER=/etc/hostname ./build/otl-cli record android /tmp/a.mp4 5
 ```
 
 GUI on a virtual display: `Xvfb :99 &` then
