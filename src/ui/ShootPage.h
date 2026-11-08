@@ -24,10 +24,13 @@ class QScrollArea;
 
 namespace otl {
 
+class DeviceDiscovery;
 namespace lenslink {
 class LensLinkSource;
-class LensLinkDiscovery;
 } // namespace lenslink
+namespace android {
+class AndroidSource;
+} // namespace android
 
 class ShootPage : public QWidget {
     Q_OBJECT
@@ -57,6 +60,10 @@ private:
     QGroupBox *buildSourceGroup();
     QGroupBox *buildStreamGroup();
     QGroupBox *buildCameraGroup();
+    QGroupBox *buildAndroidGroup();
+    void updateSourceGroups();
+    void applyAndroidOptions(bool restartIfRunning);
+    void watchSource(CameraSource *source);
     QGroupBox *buildFrameGroup();
     QGroupBox *buildRecordGroup();
 
@@ -81,8 +88,11 @@ private:
     void emitSummary();
 
     AppSettings *m_settings;
-    lenslink::LensLinkSource *m_source = nullptr;
-    lenslink::LensLinkDiscovery *m_discovery = nullptr;
+    CameraSource *m_source = nullptr; // the active one of the two below
+    lenslink::LensLinkSource *m_lenslink = nullptr;
+    android::AndroidSource *m_android = nullptr;
+    DeviceDiscovery *m_discovery = nullptr;
+    DeviceInfo m_activeDevice;
     Recorder *m_recorder = nullptr;
     PreviewWidget *m_preview = nullptr;
     QScrollArea *m_panel = nullptr;
@@ -119,6 +129,13 @@ private:
     QCheckBox *m_lockWb = nullptr;
     QJsonObject m_cameraState;
     bool m_updatingCamera = false;
+
+    // Android group
+    QGroupBox *m_androidGroup = nullptr;
+    QComboBox *m_androidFacing = nullptr;
+    QComboBox *m_androidMode = nullptr;
+    QComboBox *m_androidBitrate = nullptr;
+    QComboBox *m_androidCodec = nullptr;
 
     // Frame group
     QComboBox *m_aspectCombo = nullptr;

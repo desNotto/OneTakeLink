@@ -10,7 +10,7 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
-namespace otl::lenslink {
+namespace otl {
 
 // GPU decode APIs to try, best first.
 static const AVHWDeviceType kHwPriority[] = {
@@ -195,4 +195,4 @@ bool VideoDecoder::decode(const uint8_t *data, size_t size, int64_t ptsNs,
     return true;
 }
 
-} // namespace otl::lenslink
+} // namespace otl

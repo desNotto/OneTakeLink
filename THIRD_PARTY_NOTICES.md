@@ -15,6 +15,15 @@ The Windows connection module is derived from the LensLink OBS plugin
 The LensLink Camera iOS app itself is not part of this project; users install
 the official app from the App Store.
 
+## scrcpy server — Apache-2.0
+https://github.com/Genymobile/scrcpy — `android/scrcpy-server` (v5.0.1) is
+pushed to Android phones to capture the camera. `src/camera/android/` is an
+independent client implementation of its documented protocol.
+
+## Android Debug Bridge (adb) — Apache-2.0 (AOSP)
+`android/adb.exe`, `AdbWinApi.dll`, `AdbWinUsbApi.dll`, redistributed as
+packaged in the scrcpy Windows release.
+
 ## Qt 6 — LGPL-3.0
 https://www.qt.io — dynamically linked (Qt*.dll next to the executable).
 Source: https://download.qt.io/official_releases/qt/

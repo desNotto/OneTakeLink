@@ -1,2 +1,5 @@
 #pragma once
 #define OTL_VERSION "@PROJECT_VERSION@"
+// scrcpy server shipped in android/scrcpy-server; client and server
+// versions must match exactly.
+#define OTL_SCRCPY_VERSION "@OTL_SCRCPY_VERSION@"

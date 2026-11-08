@@ -34,4 +34,3 @@ private:
 
 } // namespace otl::lenslink
 
-Q_DECLARE_METATYPE(QList<otl::DeviceInfo>)

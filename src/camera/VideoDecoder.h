@@ -15,7 +15,7 @@ struct AVPacket;
 struct AVFrame;
 struct AVBufferRef;
 
-namespace otl::lenslink {
+namespace otl {
 
 class VideoDecoder {
 public:
@@ -53,4 +53,4 @@ private:
     friend int getHwFormatCallback(AVCodecContext *, const int *);
 };
 
-} // namespace otl::lenslink
+} // namespace otl

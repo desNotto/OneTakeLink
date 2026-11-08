@@ -17,6 +17,11 @@ struct AppSettings {
     int streamFps = 60;
     QString streamCodec = QStringLiteral("h264");
     QString streamQuality = QStringLiteral("maximum");
+    // Android (scrcpy)
+    QString androidFacing = QStringLiteral("back");
+    QString androidMode = QStringLiteral("1920x1080@60"); // WxH@fps
+    int androidBitrate = 20;                             // Mbit/s
+    QString androidCodec = QStringLiteral("h264");
 
     // Storage
     QString rootFolder;

@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(OneTakeLink VERSION 0.2.0 LANGUAGES C CXX)
+project(OneTakeLink VERSION 0.3.0 LANGUAGES C CXX)
+
+# Must match the scrcpy-server bundled for Android (see build.yml).
+set(OTL_SCRCPY_VERSION "5.0.1")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Network Widgets OpenGL OpenGLWidgets)
 
 # ---------------------------------------------------------------- FFmpeg
 # Windows: point FFMPEG_ROOT at a "shared" FFmpeg build that has include/,
@@ -55,11 +58,17 @@ add_library(otl_core STATIC
     src/core/VideoTypes.cpp
     src/camera/CameraSource.cpp
     src/camera/CameraSource.h
+    src/camera/DeviceDiscovery.cpp
+    src/camera/DeviceDiscovery.h
+    src/camera/android/Adb.cpp
+    src/camera/android/AndroidSource.cpp
+    src/camera/android/AndroidSource.h
     src/camera/lenslink/LensLinkDiscovery.cpp
     src/camera/lenslink/LensLinkDiscovery.h
     src/camera/lenslink/LensLinkSource.cpp
     src/camera/lenslink/LensLinkSource.h
-    src/camera/lenslink/VideoDecoder.cpp
+    src/camera/StreamHandler.cpp
+    src/camera/VideoDecoder.cpp
     src/recording/Mp4Writer.cpp
     src/recording/Recorder.cpp
     src/recording/Recorder.h
@@ -70,7 +79,7 @@ add_library(otl_core STATIC
     src/library/VideoPlayer.h
 )
 target_include_directories(otl_core PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_link_libraries(otl_core PUBLIC Qt6::Core Qt6::Gui lenslink_proto ffmpeg)
+target_link_libraries(otl_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network lenslink_proto ffmpeg)
 
 # ------------------------------------------------------------ app
 set(APP_SOURCES

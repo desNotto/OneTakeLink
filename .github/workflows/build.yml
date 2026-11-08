@@ -13,6 +13,8 @@ permissions:
 env:
   QT_VERSION: '6.8.3'
   FFMPEG_VERSION: '7.1.1'
+  # Must match OTL_SCRCPY_VERSION in CMakeLists.txt (client/server versions must be equal).
+  SCRCPY_VERSION: '5.0.1'
 
 jobs:
   windows:
@@ -42,6 +44,18 @@ jobs:
           7z x "$env:RUNNER_TEMP\ffmpeg.7z" -o"$env:RUNNER_TEMP" | Out-Null
           "FFMPEG_ROOT=$env:RUNNER_TEMP\$name" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Download scrcpy (adb + scrcpy-server for Android phones)
+        shell: pwsh
+        run: |
+          $name = "scrcpy-win64-v$env:SCRCPY_VERSION"
+          Invoke-WebRequest -Uri "https://github.com/Genymobile/scrcpy/releases/download/v$env:SCRCPY_VERSION/$name.zip" -OutFile "$env:RUNNER_TEMP\scrcpy.zip"
+          Expand-Archive "$env:RUNNER_TEMP\scrcpy.zip" -DestinationPath "$env:RUNNER_TEMP\scrcpy"
+          $dir = (Get-ChildItem "$env:RUNNER_TEMP\scrcpy" -Recurse -Filter scrcpy-server | Select-Object -First 1).DirectoryName
+          foreach ($f in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','scrcpy-server') {
+            if (-not (Test-Path "$dir\$f")) { throw "scrcpy package lacks $f" }
+          }
+          "SCRCPY_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Ninja
         shell: pwsh
         run: |
@@ -65,6 +79,10 @@ jobs:
           Copy-Item build\OneTakeLink.exe, build\otl-cli.exe $dist
           windeployqt --release --no-translations --no-compiler-runtime "$dist\OneTakeLink.exe"
           Copy-Item "$env:FFMPEG_ROOT\bin\*.dll" $dist
+          New-Item -ItemType Directory -Force -Path "$dist\android" | Out-Null
+          foreach ($f in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','scrcpy-server') {
+            Copy-Item "$env:SCRCPY_DIR\$f" "$dist\android"
+          }
           # MSVC runtime (redistributable) so the app runs without installing it.
           foreach ($dll in 'msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll') {
             Copy-Item "$env:SystemRoot\System32\$dll" $dist

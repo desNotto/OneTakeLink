@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ShootPage.h"
 
-#include "camera/lenslink/LensLinkDiscovery.h"
+#include "camera/DeviceDiscovery.h"
+#include "camera/android/AndroidSource.h"
 #include "camera/lenslink/LensLinkSource.h"
 #include "recording/TakeNamer.h"
 
@@ -117,15 +118,20 @@ private:
 
 ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), m_settings(settings)
 {
-    m_source = new lenslink::LensLinkSource(this);
-    m_discovery = new lenslink::LensLinkDiscovery(this);
+    m_lenslink = new lenslink::LensLinkSource(this);
+    m_android = new android::AndroidSource(this);
+    m_source = m_lenslink;
+    m_discovery = new DeviceDiscovery(this);
     m_recorder = new Recorder(this);
     m_preview = new PreviewWidget(this);
-    m_preview->setPlaceholder(tr("Выберите iPhone справа и нажмите «Подключить».\n"
-                                 "На iPhone должно быть открыто приложение LensLink Camera."));
+    m_preview->setPlaceholder(tr("Выберите телефон справа и нажмите «Подключить».\n"
+                                 "iPhone: откройте приложение LensLink Camera. "
+                                 "Android: включите отладку по USB."));
 
-    m_source->setFrameSink(m_preview);
-    m_source->setPacketSink(m_recorder);
+    for (CameraSource *s : {static_cast<CameraSource *>(m_lenslink), static_cast<CameraSource *>(m_android)}) {
+        s->setFrameSink(m_preview);
+        s->setPacketSink(m_recorder);
+    }
 
     // No layout of its own: MainWindow places the monitor and the
     // inspector panel in its single-screen layout (monitorWidget(),
@@ -150,10 +156,9 @@ ShootPage::ShootPage(AppSettings *settings, QWidget *parent) : QWidget(parent), 
         }
     }
 
-    connect(m_source, &CameraSource::statusChanged, this, &ShootPage::onStatus);
-    connect(m_source, &CameraSource::statsChanged, this, &ShootPage::onStats);
-    connect(m_source, &CameraSource::cameraStateChanged, this, &ShootPage::onCameraState);
-    connect(m_discovery, &lenslink::LensLinkDiscovery::finished, this, &ShootPage::onDevicesFound);
+    watchSource(m_lenslink);
+    watchSource(m_android);
+    connect(m_discovery, &DeviceDiscovery::finished, this, &ShootPage::onDevicesFound);
     connect(m_recorder, &Recorder::stateChanged, this, &ShootPage::onRecorderState);
     connect(m_recorder, &Recorder::progress, this, &ShootPage::onRecordProgress);
     connect(m_recorder, &Recorder::finished, this, &ShootPage::onTakeFinished);
@@ -192,8 +197,10 @@ void ShootPage::shutdown()
 {
     // The source calls into the preview and the recorder from its worker
     // thread: stop it before either goes away.
-    if (m_source)
-        m_source->stop();
+    if (m_lenslink)
+        m_lenslink->stop();
+    if (m_android)
+        m_android->stop();
 }
 
 QWidget *ShootPage::buildPanel()
@@ -206,6 +213,7 @@ QWidget *ShootPage::buildPanel()
     v->addWidget(buildRecordGroup());
     v->addWidget(buildStreamGroup());
     v->addWidget(buildCameraGroup());
+    v->addWidget(buildAndroidGroup());
     v->addWidget(buildFrameGroup());
     v->addStretch(1);
 
@@ -259,6 +267,7 @@ QGroupBox *ShootPage::buildSourceGroup()
     connect(m_refreshButton, &QPushButton::clicked, this, &ShootPage::refreshDevices);
     connect(m_deviceCombo, &QComboBox::currentIndexChanged, this, [this] {
         m_hostEdit->setVisible(m_deviceCombo->currentData().toString() == QLatin1String(kManualIpKey));
+        updateSourceGroups();
     });
     connect(m_connectButton, &QPushButton::clicked, this, [this] {
         if (m_source->isRunning())
@@ -366,6 +375,60 @@ QGroupBox *ShootPage::buildCameraGroup()
     m_cameraGroup->setEnabled(false);
     m_cameraGroup->setToolTip(tr("Настройки появятся, когда iPhone начнёт передавать видео"));
     return m_cameraGroup;
+}
+
+QGroupBox *ShootPage::buildAndroidGroup()
+{
+    m_androidGroup = new QGroupBox(tr("Камера Android"));
+    auto *f = new QFormLayout(m_androidGroup);
+
+    m_androidFacing = new QComboBox;
+    m_androidFacing->addItem(tr("Основная"), QStringLiteral("back"));
+    m_androidFacing->addItem(tr("Фронтальная"), QStringLiteral("front"));
+    m_androidFacing->addItem(tr("Внешняя"), QStringLiteral("external"));
+    f->addRow(tr("Камера"), m_androidFacing);
+
+    m_androidMode = new QComboBox;
+    for (const auto &m : {std::pair{"1920x1080@60", "1080p · 60 fps"}, std::pair{"1920x1080@30", "1080p · 30 fps"},
+                          std::pair{"1280x720@60", "720p · 60 fps"}, std::pair{"1280x720@30", "720p · 30 fps"},
+                          std::pair{"3840x2160@30", "4K · 30 fps"}})
+        m_androidMode->addItem(QString::fromLatin1(m.second), QString::fromLatin1(m.first));
+    f->addRow(tr("Режим"), m_androidMode);
+
+    m_androidBitrate = new QComboBox;
+    for (int mbps : {10, 20, 40, 60})
+        m_androidBitrate->addItem(tr("%1 Мбит/с").arg(mbps), mbps);
+    f->addRow(tr("Битрейт"), m_androidBitrate);
+
+    m_androidCodec = new QComboBox;
+    m_androidCodec->addItem(QStringLiteral("H.264"), QStringLiteral("h264"));
+    m_androidCodec->addItem(QStringLiteral("H.265 (HEVC)"), QStringLiteral("h265"));
+    f->addRow(tr("Кодек"), m_androidCodec);
+
+    auto *note = new QLabel(tr("Изменение перезапускает камеру телефона. Если телефон не умеет 60 fps "
+                               "в выбранном режиме, используется 30 fps."));
+    note->setWordWrap(true);
+    note->setObjectName(QStringLiteral("hintLabel"));
+    f->addRow(note);
+
+    auto select = [](QComboBox *c, const QVariant &v) { c->setCurrentIndex(std::max(0, c->findData(v))); };
+    select(m_androidFacing, m_settings->androidFacing);
+    select(m_androidMode, m_settings->androidMode);
+    select(m_androidBitrate, m_settings->androidBitrate);
+    select(m_androidCodec, m_settings->androidCodec);
+
+    for (QComboBox *c : {m_androidFacing, m_androidMode, m_androidBitrate, m_androidCodec}) {
+        connect(c, &QComboBox::activated, this, [this] {
+            m_settings->androidFacing = m_androidFacing->currentData().toString();
+            m_settings->androidMode = m_androidMode->currentData().toString();
+            m_settings->androidBitrate = m_androidBitrate->currentData().toInt();
+            m_settings->androidCodec = m_androidCodec->currentData().toString();
+            m_settings->save();
+            applyAndroidOptions(true);
+        });
+    }
+    m_androidGroup->setVisible(false);
+    return m_androidGroup;
 }
 
 QGroupBox *ShootPage::buildFrameGroup()
@@ -498,8 +561,11 @@ void ShootPage::onDevicesFound(const QList<DeviceInfo> &devices)
     const QString previous = m_deviceCombo->count() ? m_deviceCombo->currentData().toString()
                                                     : m_settings->deviceKey;
     m_deviceCombo->clear();
-    DeviceInfo autoUsb;
-    m_deviceCombo->addItem(autoUsb.displayName(), autoUsb.key());
+    DeviceInfo autoIphone;
+    m_deviceCombo->addItem(autoIphone.displayName(), autoIphone.key());
+    DeviceInfo autoAndroid;
+    autoAndroid.kind = SourceKind::Android;
+    m_deviceCombo->addItem(autoAndroid.displayName(), autoAndroid.key());
     for (const DeviceInfo &d : devices)
         m_deviceCombo->addItem(d.displayName(), d.key());
     m_deviceCombo->addItem(tr("Wi-Fi — ввести IP вручную…"), QLatin1String(kManualIpKey));
@@ -513,6 +579,7 @@ void ShootPage::onDevicesFound(const QList<DeviceInfo> &devices)
     }
     m_deviceCombo->setCurrentIndex(std::max(0, idx));
     m_hostEdit->setVisible(m_deviceCombo->currentData().toString() == QLatin1String(kManualIpKey));
+    updateSourceGroups();
 }
 
 void ShootPage::applySourceOptions()
@@ -524,7 +591,56 @@ void ShootPage::applySourceOptions()
     o.fps = m_settings->streamFps;
     o.codec = m_settings->streamCodec;
     o.quality = m_settings->streamQuality;
-    m_source->setOptions(o);
+    m_lenslink->setOptions(o);
+    applyAndroidOptions(false);
+}
+
+void ShootPage::applyAndroidOptions(bool restartIfRunning)
+{
+    android::AndroidOptions o;
+    o.facing = m_settings->androidFacing;
+    const QStringList mode = m_settings->androidMode.split(QLatin1Char('@'));
+    const QStringList size = mode.value(0).split(QLatin1Char('x'));
+    o.width = size.value(0).toInt() > 0 ? size.value(0).toInt() : 1920;
+    o.height = size.value(1).toInt() > 0 ? size.value(1).toInt() : 1080;
+    o.fps = mode.value(1).toInt() > 0 ? mode.value(1).toInt() : 60;
+    o.bitrateMbps = m_settings->androidBitrate;
+    o.codec = m_settings->androidCodec;
+    o.hardwareDecode = m_settings->hardwareDecode;
+    m_android->setOptions(o);
+    if (restartIfRunning && m_source == m_android && m_android->isRunning()) {
+        if (isRecording())
+            return; // applied on the next connection
+        m_android->start(m_activeDevice);
+    }
+}
+
+void ShootPage::watchSource(CameraSource *source)
+{
+    // Only the active source drives the UI; the idle one may still report
+    // its own "disconnected" state.
+    connect(source, &CameraSource::statusChanged, this, [this, source](const SourceStatus &st) {
+        if (source == m_source)
+            onStatus(st);
+    });
+    connect(source, &CameraSource::statsChanged, this, [this, source](const StreamStats &st) {
+        if (source == m_source)
+            onStats(st);
+    });
+    connect(source, &CameraSource::cameraStateChanged, this, [this, source](const QJsonObject &state) {
+        if (source == m_source)
+            onCameraState(state);
+    });
+}
+
+void ShootPage::updateSourceGroups()
+{
+    QString key = m_deviceCombo ? m_deviceCombo->currentData().toString() : QString();
+    if (m_source && m_source->isRunning())
+        key = m_activeDevice.key();
+    const bool android = key.startsWith(QLatin1String("android:"));
+    m_cameraGroup->setVisible(!android);
+    m_androidGroup->setVisible(android);
 }
 
 void ShootPage::connectSelected()
@@ -543,7 +659,13 @@ void ShootPage::connectSelected()
     m_settings->save();
     applySourceOptions();
     DeviceInfo device = DeviceInfo::fromKey(key);
+    m_lenslink->stop();
+    m_android->stop();
+    m_source = device.kind == SourceKind::Android ? static_cast<CameraSource *>(m_android)
+                                                  : static_cast<CameraSource *>(m_lenslink);
+    m_activeDevice = device;
     m_source->start(device);
+    updateSourceGroups();
     m_connectButton->setText(tr("Отключить"));
     m_deviceCombo->setEnabled(false);
     m_hostEdit->setEnabled(false);
@@ -571,6 +693,7 @@ void ShootPage::disconnectSource()
             return;
     }
     m_source->stop();
+    onCameraState({});
     m_connectButton->setText(tr("Подключить"));
     m_deviceCombo->setEnabled(true);
     m_hostEdit->setEnabled(true);

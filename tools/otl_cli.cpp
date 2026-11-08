@@ -11,7 +11,10 @@
 // <device>: usb            first iPhone on USB
 //           usb:<udid>     a specific iPhone on USB
 //           wifi:<ip>      LensLink Camera at this address
-#include "camera/lenslink/LensLinkDiscovery.h"
+//           android        first Android phone on adb (USB debugging on)
+//           android:<serial>
+#include "camera/DeviceDiscovery.h"
+#include "camera/android/AndroidSource.h"
 #include "camera/lenslink/LensLinkSource.h"
 #include "core/Log.h"
 #include "recording/Recorder.h"
@@ -32,8 +35,8 @@ static void usage()
 {
     std::puts("usage:\n"
               "  otl-cli devices\n"
-              "  otl-cli monitor <usb|usb:UDID|wifi:IP> [seconds]\n"
-              "  otl-cli record  <usb|usb:UDID|wifi:IP> <out.mp4> [seconds]\n"
+              "  otl-cli monitor <usb|usb:UDID|wifi:IP|android|android:SERIAL> [seconds]\n"
+              "  otl-cli record  <device> <out.mp4> [seconds]\n"
               "  otl-cli recover <folder>   repair takes interrupted by a crash");
 }
 
@@ -52,7 +55,7 @@ int main(int argc, char *argv[])
     const QString cmd = args[1];
 
     if (cmd == QLatin1String("devices")) {
-        const QList<DeviceInfo> devices = lenslink::LensLinkDiscovery::scanBlocking();
+        const QList<DeviceInfo> devices = DeviceDiscovery::scanBlocking();
         if (devices.isEmpty())
             std::puts("no devices found (USB: iPhone attached and trusted? Wi-Fi: app open, same network?)");
         for (const DeviceInfo &d : devices)
@@ -75,6 +78,8 @@ int main(int argc, char *argv[])
     QString key = args[2];
     if (key == QLatin1String("usb"))
         key = QStringLiteral("usb:");
+    if (key == QLatin1String("android"))
+        key = QStringLiteral("android:");
     const DeviceInfo device = DeviceInfo::fromKey(key);
     const bool record = cmd == QLatin1String("record");
     if (record && args.size() < 4) {
@@ -84,7 +89,10 @@ int main(int argc, char *argv[])
     const QString outPath = record ? args[3] : QString();
     const int seconds = args.size() > (record ? 4 : 3) ? args[record ? 4 : 3].toInt() : (record ? 10 : 0);
 
-    lenslink::LensLinkSource source;
+    lenslink::LensLinkSource lensSource;
+    android::AndroidSource androidSource;
+    CameraSource &source = device.kind == SourceKind::Android ? static_cast<CameraSource &>(androidSource)
+                                                               : static_cast<CameraSource &>(lensSource);
     Recorder recorder;
     source.setPacketSink(&recorder);
 

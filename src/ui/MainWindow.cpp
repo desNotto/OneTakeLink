@@ -3,6 +3,7 @@
 
 #include "LibraryPage.h"
 #include "PlayerPanel.h"
+#include "camera/android/Adb.h"
 #include "ShootPage.h"
 #include "core/Version.h"
 #include "library/Thumbnailer.h"
@@ -184,6 +185,7 @@ void MainWindow::restoreLayout()
 MainWindow::~MainWindow()
 {
     m_shoot->shutdown();
+    android::Adb::shutdownIfWeStartedIt();
 }
 
 void MainWindow::toggleFullscreen()

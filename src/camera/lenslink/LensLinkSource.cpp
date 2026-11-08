@@ -3,7 +3,7 @@
 // (GPL-2.0-or-later), rewritten without libobs for OneTakeLink.
 #include "LensLinkSource.h"
 
-#include "VideoDecoder.h"
+#include "camera/StreamHandler.h"
 #include "core/AnnexB.h"
 #include "core/Version.h"
 
@@ -154,32 +154,12 @@ struct LensLinkSource::Session {
     bool formatRequested = false;
     bool paused = false;
 
-    VideoCodec codec = VideoCodec::H264;
-    double nominalFps = 0;
-    int cfgWidth = 0, cfgHeight = 0;
-
-    std::unique_ptr<VideoDecoder> decoder;
-    int hwRetry = 0;
-    uint64_t nextDecoderAttempt = 0;
-    int frameWidth = 0, frameHeight = 0;
-
-    StreamFormat format;
-    bool formatSent = false;
+    std::unique_ptr<StreamHandler> stream;
     bool streaming = false;
-
-    // Stats.
     uint64_t lastRecvNs = 0;
-    uint64_t windowStartNs = 0;
-    uint64_t winPackets = 0, winFrames = 0, winBytes = 0;
-    uint64_t totalPackets = 0, missing = 0;
-    int64_t lastPts = -1;
-    double latencyMs = -1;
-    StreamStats stats;
 
     // Clock sync (TIMESYNC_REQ/RESP), NTP-style.
     uint64_t nextTimesyncNs = 0;
-    bool clockValid = false;
-    int64_t clockOffset = 0; // phone clock - our clock
     uint64_t bestRtt = UINT64_MAX;
     int syncSamples = 0;
 };
@@ -334,18 +314,14 @@ void LensLinkSource::run(DeviceInfo device)
         Session session;
         session.sock = sock;
         session.transport = device.transport;
+        {
+            QMutexLocker lock(&m_mutex);
+            session.stream = std::make_unique<StreamHandler>(m_packetSink, m_frameSink, m_options.hardwareDecode);
+        }
         runSession(session);
         net_close(sock);
 
-        const bool wasStreaming = session.streaming || session.formatSent;
-        if (wasStreaming) {
-            const QString reason = m_stop ? tr("Источник остановлен")
-                                          : tr("Связь с iPhone потеряна");
-            if (m_packetSink)
-                m_packetSink->onStreamLost(reason);
-            if (m_frameSink)
-                m_frameSink->onStreamLost();
-        }
+        session.stream->streamLost(m_stop ? tr("Источник остановлен") : tr("Связь с iPhone потеряна"));
         emit cameraStateChanged({});
         emit statsChanged({});
         if (!m_stop) {
@@ -364,7 +340,6 @@ void LensLinkSource::runSession(Session &s)
     s.buf.resize(kRecvChunk * 2);
     const uint64_t now0 = ll_gettime_ns();
     s.lastRecvNs = now0;
-    s.windowStartNs = now0;
     s.nextTimesyncNs = now0 + 500 * kMs;
 
     while (!m_stop) {
@@ -405,7 +380,7 @@ void LensLinkSource::runSession(Session &s)
                 break;
             }
             s.len += size_t(n);
-            s.winBytes += uint64_t(n);
+            s.stream->addTransportBytes(uint64_t(n));
             s.lastRecvNs = ll_gettime_ns();
 
             size_t off = 0;
@@ -545,18 +520,12 @@ bool LensLinkSource::handlePacket(Session &s, int type, uint16_t flags, uint64_t
         QJsonObject o = QJsonDocument::fromJson(
                             QByteArray::fromRawData(reinterpret_cast<const char *>(payload), int(size)))
                             .object();
-        s.cfgWidth = o.value("width").toInt();
-        s.cfgHeight = o.value("height").toInt();
-        s.nominalFps = o.value("fps").toDouble();
-        if (codec != s.codec || !s.decoder) {
-            s.codec = codec;
-            s.decoder.reset(); // re-created on the next keyframe
-            s.hwRetry = 0;
-        }
+        const int width = o.value("width").toInt();
+        const int height = o.value("height").toInt();
+        const double fps = o.value("fps").toDouble();
+        s.stream->configure(codec, fps, width, height);
         s.standby = false;
-        s.lastPts = -1;
-        qInfo("[lenslink] video config: %s %dx%d @ %.2f", qPrintable(codecName(codec)),
-              s.cfgWidth, s.cfgHeight, s.nominalFps);
+        qInfo("[lenslink] video config: %s %dx%d @ %.2f", qPrintable(codecName(codec)), width, height, fps);
         break;
     }
     case OBSC_PKT_VIDEO:
@@ -576,8 +545,7 @@ bool LensLinkSource::handlePacket(Session &s, int type, uint16_t flags, uint64_t
                 if (rtt <= s.bestRtt || ++s.syncSamples >= 30) {
                     s.bestRtt = rtt;
                     s.syncSamples = 0;
-                    s.clockOffset = int64_t(pts) - int64_t((t1 + t3) / 2);
-                    s.clockValid = true;
+                    s.stream->setClockOffset(int64_t(pts) - int64_t((t1 + t3) / 2));
                 }
             }
         }
@@ -590,89 +558,10 @@ bool LensLinkSource::handlePacket(Session &s, int type, uint16_t flags, uint64_t
 
 void LensLinkSource::handleVideo(Session &s, bool keyframe, uint64_t pts, const uint8_t *data, uint32_t size)
 {
-    ++s.totalPackets;
-    ++s.winPackets;
-
-    // Gaps in capture timestamps = frames the phone dropped or the
-    // link lost. Not counted while the stream is paused (held picture).
-    if (s.lastPts >= 0 && s.nominalFps > 1 && !s.paused) {
-        const double interval = 1e9 / s.nominalFps;
-        const double delta = double(int64_t(pts) - s.lastPts);
-        if (delta > 1.5 * interval)
-            s.missing += uint64_t(std::llround(delta / interval) - 1);
-    }
-    s.lastPts = int64_t(pts);
-
-    // Decode (also yields the true frame size before we describe the
-    // stream to the recorder).
-    if (!s.decoder) {
-        const uint64_t now = ll_gettime_ns();
-        if (keyframe && now >= s.nextDecoderAttempt) {
-            bool hw;
-            {
-                QMutexLocker lock(&m_mutex);
-                hw = m_options.hardwareDecode;
-            }
-            s.decoder = VideoDecoder::create(s.codec, hw, s.hwRetry);
-            if (!s.decoder)
-                s.nextDecoderAttempt = now + 2000 * kMs;
-            s.stats.decoder = s.decoder ? QString::fromStdString(s.decoder->apiName()) : QString();
-        }
-    }
-    if (s.decoder) {
-        bool ok = s.decoder->decode(data, size, int64_t(pts), [&](FramePtr frame) {
-            ++s.winFrames;
-            s.frameWidth = frame->width;
-            s.frameHeight = frame->height;
-            if (s.clockValid) {
-                const int64_t local = int64_t(pts) - s.clockOffset;
-                s.latencyMs = double(int64_t(ll_gettime_ns()) - local) / 1e6;
-            }
-            if (m_frameSink)
-                m_frameSink->onFrame(frame);
-        });
-        // A hardware decoder that accepts packets but emits nothing (or
-        // errors) is replaced by the next API in the priority list.
-        const bool silent = s.decoder->isHardware() && s.decoder->packetsInput() > 90 &&
-                            s.decoder->framesOutput() == 0;
-        if (!ok || silent) {
-            const int idx = s.decoder->hwIndex();
-            qWarning("[lenslink] decoder %s failed, falling back", s.decoder->apiName().c_str());
-            s.hwRetry = idx >= 0 ? idx + 1 : 0;
-            s.decoder.reset();
-        }
-    }
-
-    if (!s.streaming) {
+    if (s.stream->onAccessUnit(data, size, int64_t(pts), keyframe)) {
         s.streaming = true;
         setStatus(SourceState::Streaming,
                   tr("Видео с %1").arg(s.name.isEmpty() ? tr("iPhone") : s.name));
-    }
-
-    // Encoded stream for the recorder.
-    if (keyframe) {
-        QByteArray ps = extractParameterSets(s.codec, data, size);
-        if (!ps.isEmpty()) {
-            StreamFormat f;
-            f.codec = s.codec;
-            f.width = s.frameWidth > 0 ? s.frameWidth : s.cfgWidth;
-            f.height = s.frameHeight > 0 ? s.frameHeight : s.cfgHeight;
-            f.fps = s.nominalFps;
-            f.parameterSets = ps;
-            if (!s.formatSent || !f.sameStream(s.format)) {
-                s.format = f;
-                s.formatSent = true;
-                if (m_packetSink)
-                    m_packetSink->onStreamFormat(f);
-            }
-        }
-    }
-    if (s.formatSent && m_packetSink) {
-        EncodedPacket p;
-        p.data = std::make_shared<const std::vector<uint8_t>>(data, data + size);
-        p.ptsNs = int64_t(pts);
-        p.keyframe = keyframe;
-        m_packetSink->onPacket(p);
     }
 }
 
@@ -685,6 +574,7 @@ void LensLinkSource::handleState(Session &s, const uint8_t *payload, uint32_t si
         return;
     const QJsonObject state = doc.object();
     s.paused = state.value("paused").toBool();
+    s.stream->setPaused(s.paused);
 
     // Ask once per connection for the preferred format, if the phone
     // offers it and isn't already using it.
@@ -723,27 +613,9 @@ void LensLinkSource::handleState(Session &s, const uint8_t *payload, uint32_t si
 
 void LensLinkSource::publishStats(Session &s, bool force)
 {
-    const uint64_t now = ll_gettime_ns();
-    const uint64_t dt = now - s.windowStartNs;
-    if (!force && dt < 500 * kMs)
-        return;
-    const double sec = double(dt) / 1e9;
-    StreamStats st = s.stats;
-    st.streaming = s.streaming;
-    st.width = s.frameWidth;
-    st.height = s.frameHeight;
-    st.codec = codecName(s.codec);
-    st.fpsReceived = sec > 0 ? double(s.winPackets) / sec : 0;
-    st.fpsDecoded = sec > 0 ? double(s.winFrames) / sec : 0;
-    st.nominalFps = s.nominalFps;
-    st.mbps = sec > 0 ? double(s.winBytes) * 8.0 / sec / 1e6 : 0;
-    st.framesReceived = s.totalPackets;
-    st.framesMissing = s.missing;
-    st.latencyMs = s.latencyMs;
-    st.decoder = s.decoder ? QString::fromStdString(s.decoder->apiName()) : QString();
-    s.windowStartNs = now;
-    s.winPackets = s.winFrames = s.winBytes = 0;
-    emit statsChanged(st);
+    StreamStats st;
+    if (s.stream->takeStats(&st, force))
+        emit statsChanged(st);
 }
 
 } // namespace otl::lenslink

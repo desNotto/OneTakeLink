@@ -15,12 +15,21 @@ namespace otl {
 
 enum class Transport { Usb, Wifi };
 
-// A device the user can pick. `address` is the USB serial (UDID, may be
-// empty = "first iPhone on USB") or the phone's IP/host name for Wi-Fi.
+// Which source implementation serves a device.
+enum class SourceKind {
+    LensLink, // iPhone running LensLink Camera (USB via usbmuxd, or Wi-Fi)
+    Android,  // Android phone over adb + scrcpy server (USB)
+};
+
+// A device the user can pick. LensLink: `address` is the USB serial (UDID,
+// may be empty = "first iPhone on USB") or the phone's IP/host name for
+// Wi-Fi. Android: `address` is the adb serial (empty = first device).
 struct DeviceInfo {
+    SourceKind kind = SourceKind::LensLink;
     Transport transport = Transport::Usb;
     QString address;
     QString name;
+    QString note; // e.g. adb state "unauthorized", shown in the picker
 
     QString displayName() const;
     QString key() const; // stable id for settings, e.g. "usb:<udid>"
@@ -75,3 +84,4 @@ signals:
 } // namespace otl
 
 Q_DECLARE_METATYPE(otl::SourceStatus)
+Q_DECLARE_METATYPE(QList<otl::DeviceInfo>)

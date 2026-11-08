@@ -35,6 +35,10 @@ AppSettings AppSettings::load()
     a.streamFps = s.value("source/fps", a.streamFps).toInt();
     a.streamCodec = s.value("source/codec", a.streamCodec).toString();
     a.streamQuality = s.value("source/quality", a.streamQuality).toString();
+    a.androidFacing = s.value("android/facing", a.androidFacing).toString();
+    a.androidMode = s.value("android/mode", a.androidMode).toString();
+    a.androidBitrate = s.value("android/bitrate", a.androidBitrate).toInt();
+    a.androidCodec = s.value("android/codec", a.androidCodec).toString();
     a.rootFolder = s.value("storage/root", defaultRootFolder()).toString();
     a.project = s.value("storage/project", a.project).toString();
     a.namePattern = s.value("storage/pattern", TakeNamer::defaultPattern()).toString();
@@ -58,6 +62,10 @@ void AppSettings::save() const
     s.setValue("source/fps", streamFps);
     s.setValue("source/codec", streamCodec);
     s.setValue("source/quality", streamQuality);
+    s.setValue("android/facing", androidFacing);
+    s.setValue("android/mode", androidMode);
+    s.setValue("android/bitrate", androidBitrate);
+    s.setValue("android/codec", androidCodec);
     s.setValue("storage/root", rootFolder);
     s.setValue("storage/project", project);
     s.setValue("storage/pattern", namePattern);
