@@ -17,6 +17,7 @@ and the README are in **Russian**; code, comments and commits in English.
 | Discovery | `src/camera/DeviceDiscovery.*` | iPhones (usbmuxd + Bonjour) + `adb devices` |
 | Ported C | `src/camera/lenslink/proto/` | from LensLink `obs-plugin/src`, GPL-2.0-or-later; keep the per-file provenance header up to date when changing them |
 | Preview | `src/preview/` | `PreviewWidget` (QOpenGLWidget, NV12/I420 → RGB shader, QPainter overlays), `CropMath.h` shared with export |
+| Audio input | `src/audio/` | `AudioInput` (PC sound-card capture, FFmpeg avdevice) |
 | Recording | `src/recording/` | `Recorder` (passthrough remux, worker thread, GOP pre-roll), `Mp4Writer`, `TakeNamer` |
 | Library | `src/library/`, `src/ui/LibraryPage.*`, `src/ui/PlayerPanel.*` | `MediaProbe`, `Thumbnailer` (disk cache in CacheLocation/thumbs), `VideoPlayer` (worker thread, pts-paced, exact seek / frame step, feeds a `PreviewWidget`) |
 | UI | `src/ui/` | `MainWindow` (single screen: splitters [player │ monitor] / media pool │ inspector), `ShootPage` and `LibraryPage` are hidden logic owners that hand their widgets to MainWindow, `Style` |
@@ -44,6 +45,20 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
   survive the remux). Fakes emit a 50 ms beep at every whole second to check
   sync: `fake_phone.py --audio`, `fake_adb.py` with audio, `otl-cli record ... --audio`.
   The built-in player is silent (no Qt Multimedia).
+- PC sound-card audio (`record/audioSource` = `camera` | `input:<format>|<url>`,
+  `record/audioChannels`, `record/audioOffsetMs`): `src/audio/AudioInput`
+  captures via FFmpeg avdevice (dshow on Windows, pulse on Linux; env
+  `OTL_AUDIO_TEST_INPUT=<lavfi graph>` adds a test device) as 48 kHz stereo S16.
+  `ShootPage` maps capture time to the active source's stream pts with
+  `CameraSource::clock()` (`StreamClock`: exact from LensLink TIMESYNC, else
+  min(pts − arrival) over 3 s windows) plus the user offset, and feeds
+  `AudioChunk{origin=PcInput}` to the recorder; `Recorder::setAudioOrigin`
+  drops chunks of the other origin. Android's mic is requested only for
+  `camera`. CLI: `otl-cli audio-inputs`, `record ... --audio-input=N`.
+- Inspector order: Source (device, connect, "Record audio" + audio source),
+  Recording, Camera (iPhone or Android group, both titled "Камера"),
+  "Фактический поток" (collapsed by default, `ui/streamInfoExpanded`).
+  Language: RU/US flag toggles in the top bar (`icons::flagRu/flagUs`).
 - Takes start at the last keyframe before REC (LensLink sends a keyframe every
   2–4 s and ignores keyframe requests).
 - LensLink protocol: the phone listens on TCP 9979; we dial (USB via usbmuxd
@@ -87,7 +102,7 @@ Targets: `otl_core` (static, no Widgets), `OneTakeLink` (GUI), `otl-cli`, `otl_t
 ## Build & test (Linux container)
 
 ```bash
-apt-get install -y qt6-base-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libgl-dev ninja-build
+apt-get install -y qt6-base-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libswresample-dev libgl-dev ninja-build
 cmake -S . -B build -G Ninja && cmake --build build && ./build/otl_tests
 python3 tools/fake_phone.py &            # fake LensLink Camera on :9979
 ./build/otl-cli record wifi:127.0.0.1 /tmp/t.mp4 5

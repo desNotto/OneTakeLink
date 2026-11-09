@@ -6,24 +6,25 @@
 
 ## Русский
 
-Приложение для Windows 10/11 x64. Принимает видео с камеры iPhone или Android-телефона, показывает его на мониторе и записывает дубли в MP4. Версия 1.1.0.
+Приложение для Windows 10/11 x64. Принимает видео с камеры iPhone или Android-телефона, показывает его на мониторе и записывает дубли в MP4. Версия 1.2.0.
 
 ### Возможности
 
 - Источники: iPhone через приложение LensLink Camera (USB или Wi-Fi); Android 12+ по USB через отладку (adb и сервер scrcpy входят в комплект, на телефон ничего не устанавливается).
-- Запись видео в MP4 без перекодирования. Звук с микрофона телефона — по выбору (галочка «Записывать звук»), дорожка AAC 48 кГц стерео, синхронно с видео.
+- Запись видео в MP4 без перекодирования.
+- Звук — по выбору (галочка «Записывать звук»): микрофон телефона или вход звуковой карты компьютера (стерео, канал 1 или канал 2, сдвиг синхронизации). Дорожка AAC 48 кГц стерео, синхронно с видео.
 - Восстановление дубля после сбоя; сохранение записанного фрагмента при обрыве связи; контроль свободного места.
-- Монитор: фактические разрешение, FPS, битрейт, пропуски кадров, задержка.
+- Монитор; блок «Фактический поток» (свёрнут, раскрывается щелчком): разрешение, FPS, битрейт, пропуски кадров, задержка, звук.
 - Рамка формата 16:9 / 9:16 / 4:5 / 1:1, безопасные зоны Instagram Reels и YouTube Shorts, сетка третей. В файл не записываются; записывается полный кадр.
 - Поворот кадра на 90°. Сохраняется в MP4 как метка ориентации.
 - Настройки камеры: iPhone — режим, объектив, зум, экспокоррекция, фиксация фокуса, экспозиции и баланса белого; Android — камера, режим, битрейт, кодек.
 - Медиатека: миниатюры или таблица, поиск, фильтры, сортировка, встроенный плеер, избранное, переименование, удаление в Корзину.
-- Интерфейс на русском и английском.
+- Интерфейс на русском и английском; переключение — флажки в правом верхнем углу (с перезапуском).
 
 ### Требования
 
 - Windows 10 или 11, x64.
-- iPhone: приложение LensLink Camera (App Store); для USB — iTunes или Apple Devices; для записи звука — включённый в LensLink Camera параметр «Send phone mic to OBS».
+- iPhone: приложение LensLink Camera (App Store); для USB — iTunes или Apple Devices; для записи звука с телефона — включённый в LensLink Camera параметр «Send phone mic to OBS».
 - Android: версия 12 или новее, включённая отладка по USB.
 
 ### Установка
@@ -42,9 +43,10 @@
    - Android — включить отладку по USB (Настройки → О телефоне → 7 раз «Номер сборки» → Для разработчиков → Отладка по USB), подключить кабель, подтвердить запрос отладки.
 2. В панели «Источник» нажать «Найти», выбрать устройство, нажать «Подключить».
 3. При необходимости: выбрать формат на верхней панели, включить безопасные зоны Instagram или YouTube, сетку третей, повернуть кадр кнопкой в углу монитора.
-4. Указать папку и проект в панели «Запись»; при необходимости отметить «Записывать звук» (наличие звука показывает строка «Звук» в блоке «Фактический поток»).
-5. Нажать REC (Space). Остановить — Space.
-6. Дубль появляется в медиатеке и открывается в плеере.
+4. Для записи звука отметить «Записывать звук» в панели «Источник» и выбрать источник: «С камеры» или вход звуковой карты. Для звуковой карты — выбрать каналы, проверить индикатор уровня, при расхождении с картинкой подобрать «Сдвиг звука». Состояние звука показывает строка «Звук» в блоке «Фактический поток».
+5. Указать папку и проект в панели «Запись».
+6. Нажать REC (Space). Остановить — Space.
+7. Дубль появляется в медиатеке и открывается в плеере.
 
 ### Горячие клавиши
 
@@ -77,7 +79,7 @@
 
 ### Прочее
 
-- Диагностика подключения: `otl-cli devices`, `otl-cli monitor usb|android <секунды>`, `otl-cli recover <папка>`.
+- Диагностика подключения: `otl-cli devices`, `otl-cli monitor usb|android <секунды>`, `otl-cli recover <папка>`, `otl-cli audio-inputs`.
 - Сборка из исходников и устройство проекта: `CLAUDE.md`.
 - Лицензия: GNU GPL v3 или новее. Используются [LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later), [scrcpy](https://github.com/Genymobile/scrcpy) и adb (Apache-2.0), Qt (LGPLv3), FFmpeg (GPL); подробнее — `THIRD_PARTY_NOTICES.md`.
 - Автор: desNotto.
@@ -86,24 +88,25 @@
 
 ## English
 
-Windows 10/11 x64 application. Receives video from an iPhone or Android phone camera, shows it on a monitor and records takes to MP4. Version 1.1.0.
+Windows 10/11 x64 application. Receives video from an iPhone or Android phone camera, shows it on a monitor and records takes to MP4. Version 1.2.0.
 
 ### Features
 
 - Sources: iPhone via the LensLink Camera app (USB or Wi-Fi); Android 12+ over USB debugging (adb and the scrcpy server are bundled, nothing is installed on the phone).
-- MP4 video recording without re-encoding. Phone-microphone audio optional ("Record audio" checkbox), AAC 48 kHz stereo track in sync with the video.
+- MP4 video recording without re-encoding.
+- Audio optional ("Record audio" checkbox): the phone microphone or a computer sound-card input (stereo, channel 1 or channel 2, sync offset). AAC 48 kHz stereo track in sync with the video.
 - Take recovery after a crash; the recorded part is kept on connection loss; free-space checks.
-- Monitor: actual resolution, FPS, bitrate, dropped frames, latency.
+- Monitor; the Actual stream block (collapsed, expands on click): resolution, FPS, bitrate, dropped frames, latency, audio.
 - 16:9 / 9:16 / 4:5 / 1:1 format frame, Instagram Reels and YouTube Shorts safe zones, rule-of-thirds grid. Not written to files; the full frame is recorded.
 - 90° frame rotation. Stored in the MP4 as orientation metadata.
 - Camera settings: iPhone — mode, lens, zoom, exposure compensation, focus/exposure/white-balance lock; Android — camera, mode, bitrate, codec.
 - Media library: thumbnails or table, search, filters, sorting, built-in player, favourites, rename, delete to Recycle Bin.
-- Russian and English interface.
+- Russian and English interface; switched with the flags in the top-right corner (restarts the app).
 
 ### Requirements
 
 - Windows 10 or 11, x64.
-- iPhone: LensLink Camera app (App Store); USB needs iTunes or Apple Devices; audio recording needs "Send phone mic to OBS" turned on in LensLink Camera.
+- iPhone: LensLink Camera app (App Store); USB needs iTunes or Apple Devices; phone audio recording needs "Send phone mic to OBS" turned on in LensLink Camera.
 - Android: version 12 or newer, USB debugging enabled.
 
 ### Installation
@@ -122,9 +125,10 @@ The files are not code-signed; on a SmartScreen warning: "More info" → "Run an
    - Android — enable USB debugging (Settings → About phone → tap "Build number" 7 times → Developer options → USB debugging), connect the cable, confirm the debugging prompt.
 2. In the Source panel click Find, select the device, click Connect.
 3. Optionally: choose the format in the top bar, turn on Instagram or YouTube safe zones or the thirds grid, rotate the picture with the button in the monitor corner.
-4. Set the folder and project in the Recording panel; tick "Record audio" if needed (the Audio row in the Actual stream block shows whether sound arrives).
-5. Press REC (Space). Stop with Space.
-6. The take appears in the media library and opens in the player.
+4. To record audio, tick "Record audio" in the Source panel and choose the source: "From the camera" or a sound-card input. For a sound card, choose the channels, check the level meter and, if sound and picture drift apart, adjust "Audio offset". The Audio row in the Actual stream block shows the audio state.
+5. Set the folder and project in the Recording panel.
+6. Press REC (Space). Stop with Space.
+7. The take appears in the media library and opens in the player.
 
 ### Keyboard shortcuts
 
@@ -157,7 +161,7 @@ Network connections are made only to the phone. No telemetry.
 
 ### Other
 
-- Connection diagnostics: `otl-cli devices`, `otl-cli monitor usb|android <seconds>`, `otl-cli recover <folder>`.
+- Connection diagnostics: `otl-cli devices`, `otl-cli monitor usb|android <seconds>`, `otl-cli recover <folder>`, `otl-cli audio-inputs`.
 - Building from source and project layout: `CLAUDE.md`.
 - License: GNU GPL v3 or later. Uses [LensLink](https://github.com/MyNamesEMurray/LensLink) (GPL-2.0-or-later), [scrcpy](https://github.com/Genymobile/scrcpy) and adb (Apache-2.0), Qt (LGPLv3), FFmpeg (GPL); see `THIRD_PARTY_NOTICES.md`.
 - Author: desNotto.

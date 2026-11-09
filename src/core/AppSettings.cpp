@@ -52,6 +52,10 @@ AppSettings AppSettings::load()
     a.guidesEnabled = s.value("guides/enabled", a.guidesEnabled).toBool();
     a.countdownSeconds = s.value("record/countdown", a.countdownSeconds).toInt();
     a.recordAudio = s.value("record/audio", a.recordAudio).toBool();
+    a.audioSource = s.value("record/audioSource", a.audioSource).toString();
+    a.audioChannels = s.value("record/audioChannels", a.audioChannels).toString();
+    a.audioOffsetMs = s.value("record/audioOffsetMs", a.audioOffsetMs).toInt();
+    a.streamInfoExpanded = s.value("ui/streamInfoExpanded", a.streamInfoExpanded).toBool();
     return a;
 }
 
@@ -83,6 +87,10 @@ void AppSettings::save() const
     s.setValue("guides/enabled", guidesEnabled);
     s.setValue("record/countdown", countdownSeconds);
     s.setValue("record/audio", recordAudio);
+    s.setValue("record/audioSource", audioSource);
+    s.setValue("record/audioChannels", audioChannels);
+    s.setValue("record/audioOffsetMs", audioOffsetMs);
+    s.setValue("ui/streamInfoExpanded", streamInfoExpanded);
 }
 
 } // namespace otl

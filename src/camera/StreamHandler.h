@@ -8,6 +8,7 @@
 // Adapted from LensLink's ios-camera-source.c video path.
 #pragma once
 
+#include "camera/StreamClock.h"
 #include "core/VideoTypes.h"
 
 #include <atomic>
@@ -19,7 +20,8 @@ class VideoDecoder;
 
 class StreamHandler {
 public:
-    StreamHandler(EncodedPacketSink *packets, VideoFrameSink *frames, bool hardwareDecode);
+    StreamHandler(EncodedPacketSink *packets, VideoFrameSink *frames, bool hardwareDecode,
+                  StreamClock *clock = nullptr);
     ~StreamHandler();
 
     // Codec and nominal parameters announced by the source. A codec change
@@ -29,7 +31,13 @@ public:
 
     // Capture clock offset (source clock - local monotonic clock), when
     // known, to measure capture -> decode latency.
-    void setClockOffset(int64_t offsetNs) { m_clockValid = true; m_clockOffset = offsetNs; }
+    void setClockOffset(int64_t offsetNs)
+    {
+        m_clockValid = true;
+        m_clockOffset = offsetNs;
+        if (m_clock)
+            m_clock->setExact(offsetNs);
+    }
     // While paused, timestamp gaps are expected and not counted as drops.
     void setPaused(bool paused) { m_paused = paused; }
 
@@ -54,6 +62,7 @@ public:
 
 private:
     EncodedPacketSink *m_packetSink;
+    StreamClock *m_clock = nullptr;
     VideoFrameSink *m_frameSink;
     bool m_hwDecode;
 

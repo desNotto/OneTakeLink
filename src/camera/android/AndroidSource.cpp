@@ -328,7 +328,7 @@ void AndroidSource::run(DeviceInfo device)
         bool gotVideo = false;
         QString endReason;
         if (sock != OBSC_INVALID_SOCKET) {
-            StreamHandler stream(m_packetSink, m_frameSink, opt.hardwareDecode);
+            StreamHandler stream(m_packetSink, m_frameSink, opt.hardwareDecode, &m_clock);
             std::atomic<bool> sessionDone{false};
             std::thread audioThread;
             if (audioSock != OBSC_INVALID_SOCKET) {

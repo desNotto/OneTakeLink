@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(OneTakeLink VERSION 1.1.0 LANGUAGES C CXX)
+project(OneTakeLink VERSION 1.2.0 LANGUAGES C CXX)
 
 # Must match the scrcpy-server bundled for Android (see build.yml).
 set(OTL_SCRCPY_VERSION "5.0.1")
@@ -18,7 +18,7 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Network Widgets OpenGL OpenGLW
 # "full_build-shared" package (see .github/workflows/build.yml).
 # Linux/macOS: found through pkg-config.
 set(FFMPEG_ROOT "" CACHE PATH "FFmpeg install prefix (include/, lib/, bin/)")
-set(FFMPEG_LIBS avformat avcodec avutil swscale)
+set(FFMPEG_LIBS avdevice avformat avcodec avutil swscale swresample)
 
 add_library(ffmpeg INTERFACE)
 if(FFMPEG_ROOT)
@@ -29,7 +29,7 @@ if(FFMPEG_ROOT)
     endforeach()
 else()
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(FFMPEG_PC REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libswscale)
+    pkg_check_modules(FFMPEG_PC REQUIRED IMPORTED_TARGET libavdevice libavformat libavcodec libavutil libswscale libswresample)
     target_link_libraries(ffmpeg INTERFACE PkgConfig::FFMPEG_PC)
 endif()
 
@@ -73,6 +73,7 @@ add_library(otl_core STATIC
     src/recording/Recorder.cpp
     src/recording/Recorder.h
     src/recording/TakeNamer.cpp
+    src/audio/AudioInput.cpp
     src/library/MediaProbe.cpp
     src/library/Thumbnailer.cpp
     src/library/VideoPlayer.cpp

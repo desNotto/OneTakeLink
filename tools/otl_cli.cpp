@@ -7,12 +7,14 @@
 //   otl-cli monitor <device> [seconds]
 //   otl-cli record  <device> <out.mp4> [seconds]
 //   otl-cli recover <folder>
+//   otl-cli audio-inputs
 //
 // <device>: usb            first iPhone on USB
 //           usb:<udid>     a specific iPhone on USB
 //           wifi:<ip>      LensLink Camera at this address
 //           android        first Android phone on adb (USB debugging on)
 //           android:<serial>
+#include "audio/AudioInput.h"
 #include "camera/DeviceDiscovery.h"
 #include "camera/android/AndroidSource.h"
 #include "camera/lenslink/LensLinkSource.h"
@@ -36,8 +38,9 @@ static void usage()
     std::puts("usage:\n"
               "  otl-cli devices\n"
               "  otl-cli monitor <usb|usb:UDID|wifi:IP|android|android:SERIAL> [seconds]\n"
-              "  otl-cli record  <device> <out.mp4> [seconds] [--audio]\n"
-              "  otl-cli recover <folder>   repair takes interrupted by a crash");
+              "  otl-cli record  <device> <out.mp4> [seconds] [--audio | --audio-input=N]\n"
+              "  otl-cli recover <folder>   repair takes interrupted by a crash\n"
+              "  otl-cli audio-inputs       list PC audio inputs (N for --audio-input)");
 }
 
 int main(int argc, char *argv[])
@@ -50,7 +53,15 @@ int main(int argc, char *argv[])
     QStringList args = app.arguments();
     // --audio: record the phone microphone too (Android: also requested
     // from the phone; iPhone: needs "Send phone mic to OBS" in the app).
-    const bool withAudio = args.removeAll(QStringLiteral("--audio")) > 0;
+    bool withAudio = args.removeAll(QStringLiteral("--audio")) > 0;
+    // --audio-input=N: record sound from PC audio input N instead.
+    int inputIndex = -1;
+    for (int i = args.size() - 1; i >= 0; --i) {
+        if (args[i].startsWith(QLatin1String("--audio-input="))) {
+            inputIndex = args[i].mid(14).toInt();
+            args.removeAt(i);
+        }
+    }
     if (args.size() < 2) {
         usage();
         return 2;
@@ -63,6 +74,14 @@ int main(int argc, char *argv[])
             std::puts("no devices found (USB: iPhone attached and trusted? Wi-Fi: app open, same network?)");
         for (const DeviceInfo &d : devices)
             std::printf("%-40s %s\n", qPrintable(d.key()), qPrintable(d.displayName()));
+        return 0;
+    }
+    if (cmd == QLatin1String("audio-inputs")) {
+        const QList<AudioInputDevice> inputs = listAudioInputs();
+        if (inputs.isEmpty())
+            std::puts("no audio inputs found");
+        for (int i = 0; i < inputs.size(); ++i)
+            std::printf("%d  %s\n", i, qPrintable(inputs[i].name));
         return 0;
     }
     if (cmd == QLatin1String("recover") && args.size() >= 3) {
@@ -101,6 +120,31 @@ int main(int argc, char *argv[])
     androidSource.setOptions(aopt);
     Recorder recorder;
     source.setPacketSink(&recorder);
+
+    AudioInputCapture input;
+    if (inputIndex >= 0) {
+        const QList<AudioInputDevice> inputs = listAudioInputs();
+        if (inputIndex >= inputs.size()) {
+            std::printf("no audio input %d (see otl-cli audio-inputs)\n", inputIndex);
+            return 2;
+        }
+        aopt.audio = false;
+        androidSource.setOptions(aopt);
+        withAudio = true;
+        recorder.setAudioOrigin(AudioChunk::Origin::PcInput);
+        std::printf("[audio] %s\n", qPrintable(inputs[inputIndex].name));
+        input.start(inputs[inputIndex], InputChannels::Stereo,
+                    [&](const int16_t *samples, int frames, int64_t local) {
+                        int64_t pts = 0;
+                        if (!source.clock().map(local, &pts))
+                            return;
+                        AudioChunk chunk;
+                        chunk.origin = AudioChunk::Origin::PcInput;
+                        chunk.samples = std::make_shared<std::vector<int16_t>>(samples, samples + size_t(frames) * 2);
+                        chunk.ptsNs = pts;
+                        recorder.onAudio(chunk);
+                    });
+    }
 
     int exitCode = 0;
     bool recordingRequested = false;
@@ -154,6 +198,7 @@ int main(int argc, char *argv[])
     if (!record && seconds > 0)
         QTimer::singleShot(seconds * 1000, &app, &QCoreApplication::quit);
     app.exec();
+    input.stop();
     source.stop();
     return exitCode;
 }

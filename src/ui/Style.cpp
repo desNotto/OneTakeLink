@@ -162,6 +162,22 @@ QToolButton#topToggle:hover { background: #22165A; border-color: #5A43A8; }
 QToolButton#topToggle:checked { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2A1670, stop:1 #3A2B78);
                                 border: 1px solid @LAVENDER@; }
 
+/* Language flags */
+QToolButton#flagButton { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 2px; }
+QToolButton#flagButton:hover { background: #22165A; border-color: #5A43A8; }
+QToolButton#flagButton:checked { background: #2A1670; border: 1px solid @LAVENDER@; }
+
+/* Input level meter */
+QProgressBar#audioMeter { background: #0E0726; border: 1px solid #3A2B78; border-radius: 3px; max-height: 8px; }
+QProgressBar#audioMeter::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                 stop:0 #6E4BD8, stop:0.8 @LAVENDER@, stop:1 #ff5c6c); border-radius: 2px; }
+
+/* Collapsible inspector section */
+QToolButton#sectionHeader { background: transparent; border: none; color: #C9B2FF; font-weight: 600;
+                            padding: 4px 2px; text-align: left; }
+QToolButton#sectionHeader:hover { color: @GHOST@; }
+QGroupBox#untitledGroup { margin-top: 0; padding-top: 8px; }
+
 /* Buttons over the camera monitor */
 QWidget#monitorButtons { background: transparent; }
 QToolButton#monitorButton { background: rgba(21, 10, 53, 190); border: 1px solid rgba(165, 119, 255, 120);

@@ -39,7 +39,11 @@ struct AppSettings {
     bool guidesEnabled = true;
 
     int countdownSeconds = 0; // 0, 3, 5, 10
-    bool recordAudio = false; // phone microphone -> AAC track
+    bool recordAudio = false; // -> AAC track
+    QString audioSource = QStringLiteral("camera"); // "camera" or "input:<device id>"
+    QString audioChannels = QStringLiteral("stereo"); // stereo | first | second
+    int audioOffsetMs = 0;                            // PC input: + delays the sound
+    bool streamInfoExpanded = false;
 
     static AppSettings load();
     void save() const;

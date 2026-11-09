@@ -103,6 +103,8 @@ void Recorder::onPacket(const EncodedPacket &packet)
 
 void Recorder::onAudio(const AudioChunk &chunk)
 {
+    if (chunk.origin != m_audioOrigin.load())
+        return;
     Item item{Item::Audio, {}, {}, {}};
     item.audio = chunk;
     post(std::move(item));

@@ -5,6 +5,9 @@
 #include "camera/android/AndroidSource.h"
 #include "camera/lenslink/LensLinkSource.h"
 #include "ui/Icons.h"
+#include "camera/StreamHandler.h"
+
+#include <thread>
 #include "recording/TakeNamer.h"
 
 #include <QCheckBox>
@@ -26,6 +29,9 @@
 #include <QScrollArea>
 #include <QSlider>
 #include <QStorageInfo>
+#include <QPointer>
+#include <QProgressBar>
+#include <QSpinBox>
 #include <QStyle>
 #include <QToolButton>
 #include <QUrl>
@@ -199,6 +205,7 @@ ShootPage::~ShootPage()
 
 void ShootPage::shutdown()
 {
+    m_audioInput.stop();
     // The source calls into the preview and the recorder from its worker
     // thread: stop it before either goes away.
     if (m_lenslink)
@@ -359,9 +366,9 @@ QWidget *ShootPage::buildPanel()
     v->setSpacing(10);
     v->addWidget(buildSourceGroup());
     v->addWidget(buildRecordGroup());
-    v->addWidget(buildStreamGroup());
     v->addWidget(buildCameraGroup());
     v->addWidget(buildAndroidGroup());
+    v->addWidget(buildStreamGroup());
     v->addStretch(1);
 
     m_panel = new QScrollArea;
@@ -411,6 +418,80 @@ QGroupBox *ShootPage::buildSourceGroup()
     v->addWidget(m_statusLabel);
     v->addWidget(m_hintLabel);
 
+    // Sound: the phone's microphone or an input of the PC's audio card.
+    m_audioCheck = new QCheckBox(tr("Записывать звук"));
+    m_audioCheck->setChecked(m_settings->recordAudio);
+    m_audioCheck->setToolTip(tr("Дорожка AAC 48 кГц стерео, синхронно с видео."));
+    m_audioSourceCombo = new QComboBox;
+    m_audioSourceCombo->setToolTip(tr("С камеры — микрофон телефона (iPhone: включите в LensLink Camera "
+                                      "«Send phone mic to OBS»; Android: включается автоматически).\n"
+                                      "Остальные пункты — входы звуковой карты компьютера."));
+    m_audioChannelsCombo = new QComboBox;
+    m_audioChannelsCombo->addItem(tr("Стерео (каналы 1+2)"), QStringLiteral("stereo"));
+    m_audioChannelsCombo->addItem(tr("Канал 1 (моно)"), QStringLiteral("first"));
+    m_audioChannelsCombo->addItem(tr("Канал 2 (моно)"), QStringLiteral("second"));
+    m_audioChannelsCombo->setCurrentIndex(std::max(0, m_audioChannelsCombo->findData(m_settings->audioChannels)));
+    m_audioOffsetSpin = new QSpinBox;
+    m_audioOffsetSpin->setRange(-1000, 1000);
+    m_audioOffsetSpin->setSingleStep(5);
+    m_audioOffsetSpin->setSuffix(tr(" мс"));
+    m_audioOffsetSpin->setValue(m_settings->audioOffsetMs);
+    m_audioOffsetSpin->setToolTip(tr("Сдвиг звука звуковой карты относительно видео. Если звук опережает "
+                                     "картинку — увеличьте значение.\niPhone: часы синхронизируются "
+                                     "автоматически. Android: задержку видео приходится подбирать."));
+    m_audioMeter = new QProgressBar;
+    m_audioMeter->setObjectName(QStringLiteral("audioMeter"));
+    m_audioMeter->setRange(0, 100);
+    m_audioMeter->setTextVisible(false);
+    m_audioMeter->setFixedHeight(6);
+    m_audioMeter->setToolTip(tr("Уровень сигнала на входе"));
+    m_audioOffsetNs = int64_t(m_settings->audioOffsetMs) * 1'000'000;
+
+    auto *af = new QFormLayout;
+    af->setContentsMargins(0, 4, 0, 0);
+    af->addRow(m_audioCheck);
+    m_audioSourceCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_audioSourceCombo->setMinimumContentsLength(12);
+    af->addRow(m_audioSourceCombo); // full width: device names are long
+    m_audioInputRows = new QWidget;
+    auto *rows = new QFormLayout(m_audioInputRows);
+    rows->setContentsMargins(0, 0, 0, 0);
+    rows->addRow(tr("Каналы"), m_audioChannelsCombo);
+    rows->addRow(tr("Сдвиг звука"), m_audioOffsetSpin);
+    rows->addRow(tr("Уровень"), m_audioMeter);
+    af->addRow(m_audioInputRows);
+    v->addLayout(af);
+    fillAudioSources();
+
+    connect(m_audioCheck, &QCheckBox::toggled, this, [this](bool on) {
+        m_settings->recordAudio = on;
+        m_settings->save();
+        applyAudioRouting();
+    });
+    connect(m_audioSourceCombo, &QComboBox::activated, this, [this] {
+        m_settings->audioSource = m_audioSourceCombo->currentData().toString();
+        m_settings->save();
+        applyAudioRouting();
+    });
+    connect(m_audioChannelsCombo, &QComboBox::activated, this, [this] {
+        m_settings->audioChannels = m_audioChannelsCombo->currentData().toString();
+        m_settings->save();
+        applyAudioRouting();
+    });
+    connect(m_audioOffsetSpin, &QSpinBox::valueChanged, this, [this](int ms) {
+        m_audioOffsetNs = int64_t(ms) * 1'000'000;
+        m_settings->audioOffsetMs = ms;
+        m_settings->save();
+    });
+    m_meterTimer.setInterval(66);
+    connect(&m_meterTimer, &QTimer::timeout, this, [this] {
+        const float peak = m_audioInput.takePeak();
+        // dBFS -60..0 -> 0..100
+        const double db = peak > 0 ? 20.0 * std::log10(double(peak)) : -60.0;
+        m_audioMeter->setValue(int(std::clamp((db + 60.0) / 60.0 * 100.0, 0.0, 100.0)));
+        updateAudioInfo();
+    });
+
     connect(m_refreshButton, &QPushButton::clicked, this, &ShootPage::refreshDevices);
     connect(m_deviceCombo, &QComboBox::currentIndexChanged, this, [this] {
         m_hostEdit->setVisible(m_deviceCombo->currentData().toString() == QLatin1String(kManualIpKey));
@@ -428,9 +509,35 @@ QGroupBox *ShootPage::buildSourceGroup()
     return g;
 }
 
-QGroupBox *ShootPage::buildStreamGroup()
+QWidget *ShootPage::buildStreamGroup()
 {
-    auto *g = new QGroupBox(tr("Фактический поток"));
+    // Collapsible: a header with an arrow and a one-line summary; the
+    // details open on click (collapsed by default, state remembered).
+    auto *section = new QWidget;
+    auto *sv = new QVBoxLayout(section);
+    sv->setContentsMargins(0, 0, 0, 0);
+    sv->setSpacing(4);
+    m_streamHeader = new QToolButton;
+    m_streamHeader->setObjectName(QStringLiteral("sectionHeader"));
+    m_streamHeader->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_streamHeader->setCheckable(true);
+    m_streamHeader->setChecked(m_settings->streamInfoExpanded);
+    m_streamHeader->setArrowType(m_settings->streamInfoExpanded ? Qt::DownArrow : Qt::RightArrow);
+    m_streamHeader->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_streamHeader->setCursor(Qt::PointingHandCursor);
+    m_streamHeader->setFocusPolicy(Qt::NoFocus);
+    auto *g = new QGroupBox;
+    g->setObjectName(QStringLiteral("untitledGroup"));
+    g->setVisible(m_settings->streamInfoExpanded);
+    sv->addWidget(m_streamHeader);
+    sv->addWidget(g);
+    connect(m_streamHeader, &QToolButton::toggled, this, [this, g](bool open) {
+        g->setVisible(open);
+        m_streamHeader->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
+        m_settings->streamInfoExpanded = open;
+        m_settings->save();
+        updateStreamHeader();
+    });
     auto *f = new QFormLayout(g);
     auto mk = [&](const QString &label) {
         auto *l = new QLabel(QStringLiteral("—"));
@@ -447,12 +554,22 @@ QGroupBox *ShootPage::buildStreamGroup()
     m_infoLatency = mk(tr("Задержка"));
     m_infoDecoder = mk(tr("Декодер"));
     m_infoAudio = mk(tr("Звук"));
-    return g;
+    updateStreamHeader();
+    return section;
+}
+
+void ShootPage::updateStreamHeader()
+{
+    QString text = tr("Фактический поток");
+    if (!m_streamHeader->isChecked() && m_stats.streaming && m_stats.width > 0)
+        text += QStringLiteral("  ·  %1×%2 · %3 fps").arg(m_stats.width).arg(m_stats.height)
+                    .arg(m_stats.fpsReceived, 0, 'f', 0);
+    m_streamHeader->setText(text);
 }
 
 QGroupBox *ShootPage::buildCameraGroup()
 {
-    m_cameraGroup = new QGroupBox(tr("Камера iPhone"));
+    m_cameraGroup = new QGroupBox(tr("Камера"));
     auto *f = new QFormLayout(m_cameraGroup);
 
     m_formatCombo = new QComboBox;
@@ -527,7 +644,7 @@ QGroupBox *ShootPage::buildCameraGroup()
 
 QGroupBox *ShootPage::buildAndroidGroup()
 {
-    m_androidGroup = new QGroupBox(tr("Камера Android"));
+    m_androidGroup = new QGroupBox(tr("Камера"));
     auto *f = new QFormLayout(m_androidGroup);
 
     m_androidFacing = new QComboBox;
@@ -604,18 +721,6 @@ QGroupBox *ShootPage::buildRecordGroup()
     m_countdownCombo->addItem(tr("10 секунд"), 10);
     m_countdownCombo->setCurrentIndex(std::max(0, m_countdownCombo->findData(m_settings->countdownSeconds)));
     f->addRow(tr("Таймер"), m_countdownCombo);
-    m_audioCheck = new QCheckBox(tr("Записывать звук"));
-    m_audioCheck->setChecked(m_settings->recordAudio);
-    m_audioCheck->setToolTip(tr("Звук с микрофона телефона, дорожка AAC 48 кГц стерео.\n"
-                                "Android: включается автоматически (камера перезапустится).\n"
-                                "iPhone: включите в LensLink Camera «Send phone mic to OBS»."));
-    f->addRow(QString(), m_audioCheck);
-    connect(m_audioCheck, &QCheckBox::toggled, this, [this](bool on) {
-        m_settings->recordAudio = on;
-        m_settings->save();
-        applyAndroidOptions(true); // Android starts/stops sending audio
-        updateAudioInfo();
-    });
     v->addLayout(f);
 
     m_nextNameLabel = new QLabel;
@@ -665,6 +770,85 @@ void ShootPage::refreshDevices()
     m_refreshButton->setEnabled(false);
     m_refreshButton->setText(tr("Поиск…"));
     m_discovery->scan();
+    // Sound-card inputs, off the UI thread.
+    QPointer<ShootPage> self(this);
+    std::thread([self] {
+        const QList<AudioInputDevice> inputs = listAudioInputs();
+        QMetaObject::invokeMethod(qApp, [self, inputs] {
+            if (!self)
+                return;
+            self->m_inputDevices = inputs;
+            self->fillAudioSources();
+            self->applyAudioRouting();
+        }, Qt::QueuedConnection);
+    }).detach();
+}
+
+void ShootPage::fillAudioSources()
+{
+    const QSignalBlocker block(m_audioSourceCombo);
+    m_audioSourceCombo->clear();
+    m_audioSourceCombo->addItem(tr("С камеры (микрофон телефона)"), QStringLiteral("camera"));
+    for (const AudioInputDevice &d : m_inputDevices)
+        m_audioSourceCombo->addItem(tr("Звуковая карта: %1").arg(d.name), QStringLiteral("input:") + d.id);
+    int idx = m_audioSourceCombo->findData(m_settings->audioSource);
+    if (idx < 0 && m_settings->audioSource.startsWith(QLatin1String("input:"))) {
+        // Remembered device not present (yet): keep it selectable.
+        m_audioSourceCombo->addItem(tr("Звуковая карта (не найдена)"), m_settings->audioSource);
+        idx = m_audioSourceCombo->count() - 1;
+    }
+    m_audioSourceCombo->setCurrentIndex(std::max(0, idx));
+}
+
+void ShootPage::applyAudioRouting()
+{
+    const bool on = m_settings->recordAudio;
+    const QString src = m_settings->audioSource;
+    const bool input = on && src.startsWith(QLatin1String("input:"));
+    m_audioSourceCombo->setEnabled(on && m_recorder->state() == Recorder::State::Idle);
+    m_audioInputRows->setVisible(input);
+    m_recorder->setAudioOrigin(input ? AudioChunk::Origin::PcInput : AudioChunk::Origin::Phone);
+
+    // Sound-card capture runs while selected, so the level meter works and
+    // the take's pre-roll has audio too.
+    const QString id = src.mid(6);
+    const InputChannels channels = m_settings->audioChannels == QLatin1String("first")    ? InputChannels::First
+                                   : m_settings->audioChannels == QLatin1String("second") ? InputChannels::Second
+                                                                                         : InputChannels::Stereo;
+    if (!input) {
+        m_audioInput.stop();
+        m_meterTimer.stop();
+        m_audioMeter->setValue(0);
+    } else if (!m_audioInput.isRunning() || m_audioInputId != id || m_audioInputChannels != channels) {
+        AudioInputDevice device;
+        for (const AudioInputDevice &d : m_inputDevices)
+            if (d.id == id)
+                device = d;
+        if (device.id.isEmpty()) {
+            m_audioInput.stop();
+            device = {id, id}; // not enumerated (yet): try to open it anyway
+        }
+        m_audioInputId = id;
+        m_audioInputChannels = channels;
+        m_audioInput.start(device, channels, [this](const int16_t *samples, int frames, int64_t local) {
+            // Capture thread: place the sound on the active camera's timeline.
+            m_lastInputChunkNs = local;
+            CameraSource *source = m_audioClockSource.load();
+            int64_t pts = 0;
+            if (!source || !source->clock().map(local, &pts))
+                return; // no video yet: nothing to sync to
+            AudioChunk chunk;
+            chunk.origin = AudioChunk::Origin::PcInput;
+            chunk.samples = std::make_shared<std::vector<int16_t>>(samples, samples + size_t(frames) * 2);
+            chunk.sampleRate = 48000;
+            chunk.channels = 2;
+            chunk.ptsNs = pts + m_audioOffsetNs.load();
+            m_recorder->onAudio(chunk);
+        });
+        m_meterTimer.start();
+    }
+    applyAndroidOptions(true); // Android sends its mic only for "camera"
+    updateAudioInfo();
 }
 
 void ShootPage::onDevicesFound(const QList<DeviceInfo> &devices)
@@ -721,7 +905,7 @@ void ShootPage::applyAndroidOptions(bool restartIfRunning)
     o.bitrateMbps = m_settings->androidBitrate;
     o.codec = m_settings->androidCodec;
     o.hardwareDecode = m_settings->hardwareDecode;
-    o.audio = m_settings->recordAudio;
+    o.audio = m_settings->recordAudio && !m_settings->audioSource.startsWith(QLatin1String("input:"));
     m_android->setOptions(o);
     if (restartIfRunning && m_source == m_android && m_android->isRunning()) {
         if (isRecording())
@@ -779,6 +963,7 @@ void ShootPage::connectSelected()
     m_source = device.kind == SourceKind::Android ? static_cast<CameraSource *>(m_android)
                                                   : static_cast<CameraSource *>(m_lenslink);
     m_activeDevice = device;
+    m_audioClockSource = m_source;
     m_source->start(device);
     updateSourceGroups();
     m_connectButton->setText(tr("Отключить"));
@@ -850,6 +1035,7 @@ void ShootPage::onStatus(const SourceStatus &status)
 void ShootPage::onStats(const StreamStats &st)
 {
     m_stats = st;
+    updateStreamHeader();
     if (!st.streaming || st.width == 0) {
         for (QLabel *l : {m_infoResolution, m_infoFps, m_infoCodec, m_infoBitrate, m_infoMissing,
                           m_infoLatency, m_infoDecoder})
@@ -878,8 +1064,20 @@ void ShootPage::onStats(const StreamStats &st)
 void ShootPage::updateAudioInfo()
 {
     QString text;
+    const bool input = m_settings->recordAudio && m_settings->audioSource.startsWith(QLatin1String("input:"));
     if (!m_settings->recordAudio) {
         text = tr("не записывается");
+    } else if (input) {
+        const QString error = m_audioInput.lastError();
+        const bool flowing = int64_t(monotonicNs()) - m_lastInputChunkNs.load() < 1'000'000'000LL;
+        if (!error.isEmpty())
+            text = QStringLiteral("<span style='color:#ff5c6c'>%1</span>").arg(error.toHtmlEscaped());
+        else if (!flowing)
+            text = QStringLiteral("<span style='color:#fbbf24'>%1</span>").arg(tr("звуковая карта молчит"));
+        else if (!m_stats.streaming)
+            text = tr("звуковая карта: ждём видео для синхронизации");
+        else
+            text = tr("звуковая карта, 48 кГц, стерео");
     } else if (m_stats.audio) {
         text = tr("%1 кГц, %2").arg(m_stats.audioSampleRate / 1000.0, 0, 'g', 3)
                    .arg(m_stats.audioChannels >= 2 ? tr("стерео") : tr("моно"));
@@ -1071,6 +1269,8 @@ void ShootPage::onRecorderState(Recorder::State state)
     m_recButton->setEnabled(state != Recorder::State::Finalizing);
     const bool idle = state == Recorder::State::Idle;
     m_audioCheck->setEnabled(idle);
+    m_audioSourceCombo->setEnabled(idle && m_settings->recordAudio);
+    m_audioChannelsCombo->setEnabled(idle);
     m_rotateButton->setEnabled(idle);
     m_resetRotationButton->setEnabled(idle && m_preview->rotation() != 0);
     // Re-polish so the stylesheet picks up the "recording" property.

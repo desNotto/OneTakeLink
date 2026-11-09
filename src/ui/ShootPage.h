@@ -2,6 +2,7 @@
 // "Съёмка": monitor, source selection, camera controls, guides, REC/STOP.
 #pragma once
 
+#include "audio/AudioInput.h"
 #include "camera/CameraSource.h"
 #include "core/AppSettings.h"
 #include "preview/PreviewWidget.h"
@@ -20,7 +21,9 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QSlider;
+class QProgressBar;
 class QScrollArea;
+class QSpinBox;
 class QToolButton;
 
 namespace otl {
@@ -64,7 +67,8 @@ private:
     QWidget *buildPanel();
     QWidget *buildFormatBar();
     QGroupBox *buildSourceGroup();
-    QGroupBox *buildStreamGroup();
+    QWidget *buildStreamGroup();
+    void updateStreamHeader();
     QGroupBox *buildCameraGroup();
     QGroupBox *buildAndroidGroup();
     void updateSourceGroups();
@@ -91,6 +95,8 @@ private:
     void applySourceOptions();
     void sendCommand(const QJsonObject &cmd);
     void emitSummary();
+    void fillAudioSources();
+    void applyAudioRouting();
     void updateAudioInfo();
     void buildMonitorButtons();
     void applyRotation(int degreesCw);
@@ -115,6 +121,7 @@ private:
     QLabel *m_hintLabel = nullptr;
 
     // Stream group
+    QToolButton *m_streamHeader = nullptr;
     QLabel *m_infoDevice = nullptr;
     QLabel *m_infoResolution = nullptr;
     QLabel *m_infoFps = nullptr;
@@ -158,7 +165,21 @@ private:
     QLineEdit *m_projectEdit = nullptr;
     QLabel *m_nextNameLabel = nullptr;
     QComboBox *m_countdownCombo = nullptr;
+    // Sound (in the Source group)
     QCheckBox *m_audioCheck = nullptr;
+    QComboBox *m_audioSourceCombo = nullptr;
+    QWidget *m_audioInputRows = nullptr;
+    QComboBox *m_audioChannelsCombo = nullptr;
+    QSpinBox *m_audioOffsetSpin = nullptr;
+    QProgressBar *m_audioMeter = nullptr;
+    QTimer m_meterTimer;
+    QList<AudioInputDevice> m_inputDevices;
+    AudioInputCapture m_audioInput;
+    QString m_audioInputId;
+    InputChannels m_audioInputChannels = InputChannels::Stereo;
+    std::atomic<CameraSource *> m_audioClockSource{nullptr};
+    std::atomic<int64_t> m_audioOffsetNs{0};
+    std::atomic<int64_t> m_lastInputChunkNs{0};
     QPushButton *m_recButton = nullptr;
     QLabel *m_durationLabel = nullptr;
     QLabel *m_savedLabel = nullptr;

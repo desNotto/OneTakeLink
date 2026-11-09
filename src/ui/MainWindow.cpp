@@ -2,6 +2,7 @@
 #include "MainWindow.h"
 
 #include "LibraryPage.h"
+#include "Icons.h"
 #include "PlayerPanel.h"
 #include "camera/android/Adb.h"
 #include "ShootPage.h"
@@ -10,7 +11,6 @@
 #include "recording/Recorder.h"
 
 #include <QApplication>
-#include <QComboBox>
 #include <QLocale>
 #include <QProcess>
 #include <QCloseEvent>
@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QStatusBar>
+#include <QToolButton>
 #include <QSettings>
 #include <QSplitter>
 #include <QVBoxLayout>
@@ -52,11 +53,33 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     auto *name = new QLabel(QStringLiteral("OneTakeLink"));
     name->setObjectName(QStringLiteral("brandName"));
 
-    m_languageCombo = new QComboBox;
-    m_languageCombo->addItem(QStringLiteral("RU"), QStringLiteral("ru"));
-    m_languageCombo->addItem(QStringLiteral("EN"), QStringLiteral("en"));
-    m_languageCombo->setToolTip(tr("Язык интерфейса"));
-    m_languageCombo->setCurrentIndex(std::max(0, m_languageCombo->findData(currentLanguage())));
+    // Language: two flag toggles, the current one highlighted.
+    auto *languages = new QWidget;
+    auto *langLayout = new QHBoxLayout(languages);
+    langLayout->setContentsMargins(0, 0, 0, 0);
+    langLayout->setSpacing(4);
+    const struct {
+        const char *code;
+        QIcon icon;
+        QString tip;
+    } langs[] = {{"ru", icons::flagRu(), tr("Русский")}, {"en", icons::flagUs(), tr("English")}};
+    for (const auto &l : langs) {
+        auto *b = new QToolButton;
+        b->setObjectName(QStringLiteral("flagButton"));
+        b->setIcon(l.icon);
+        b->setIconSize(QSize(26, 26));
+        b->setCheckable(true);
+        b->setAutoRaise(true);
+        b->setFocusPolicy(Qt::NoFocus);
+        b->setToolTip(tr("Язык интерфейса: %1").arg(l.tip));
+        b->setChecked(currentLanguage() == QLatin1String(l.code));
+        const QString code = QString::fromLatin1(l.code);
+        connect(b, &QToolButton::clicked, this, [this, b, code] {
+            b->setChecked(code == currentLanguage()); // the restart applies it
+            changeLanguage(code);
+        });
+        langLayout->addWidget(b);
+    }
 
     auto *about = new QPushButton(tr("О программе"));
     about->setFlat(true);
@@ -66,7 +89,7 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     top->addSpacing(28);
     top->addWidget(m_shoot->formatBar());
     top->addStretch(1);
-    top->addWidget(m_languageCombo);
+    top->addWidget(languages);
     top->addWidget(about);
 
     //  ┌ player ┬ monitor ┐┌ inspector ┐
@@ -123,7 +146,6 @@ MainWindow::MainWindow() : m_settings(AppSettings::load())
     statusBar()->addPermanentWidget(m_sbDisk);
 
     connect(about, &QPushButton::clicked, this, &MainWindow::showAbout);
-    connect(m_languageCombo, &QComboBox::activated, this, &MainWindow::changeLanguage);
     connect(m_shoot, &ShootPage::statusSummary, this,
             [this](const QString &src, const QString &stream, const QString &rec, const QString &disk) {
                 m_sbSource->setText(src);
@@ -282,13 +304,11 @@ QString MainWindow::currentLanguage() const
     return QLocale().language() == QLocale::Russian ? QStringLiteral("ru") : QStringLiteral("en");
 }
 
-void MainWindow::changeLanguage()
+void MainWindow::changeLanguage(const QString &lang)
 {
-    const QString lang = m_languageCombo->currentData().toString();
     if (lang == currentLanguage())
         return;
     if (m_shoot->isRecording()) {
-        m_languageCombo->setCurrentIndex(m_languageCombo->findData(currentLanguage()));
         QMessageBox::information(this, tr("Идёт запись"), tr("Язык можно сменить после остановки записи."));
         return;
     }

@@ -166,7 +166,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build qt6-base-dev libgl-dev \
-            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev \
+            libavdevice-dev libswresample-dev
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build

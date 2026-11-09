@@ -127,4 +127,58 @@ QIcon thirdsGrid(const QColor &color)
     });
 }
 
+namespace {
+
+// 20x14 flag area centred in the 20x20 icon, with rounded corners.
+const QRectF kFlag(0.5, 3.5, 19.0, 13.0);
+
+template <typename Fill>
+QIcon flag(Fill fill)
+{
+    return render([fill](QPainter &p) {
+        QPainterPath clip;
+        clip.addRoundedRect(kFlag, 2.2, 2.2);
+        p.save();
+        p.setClipPath(clip);
+        fill(p);
+        p.restore();
+        p.setPen(QPen(QColor(0xF5, 0xF7, 0xFC, 90), 0.6));
+        p.setBrush(Qt::NoBrush);
+        p.drawPath(clip);
+    });
+}
+
+} // namespace
+
+QIcon flagRu()
+{
+    return flag([](QPainter &p) {
+        const qreal h = kFlag.height() / 3;
+        p.fillRect(QRectF(kFlag.left(), kFlag.top(), kFlag.width(), h), QColor(0xFF, 0xFF, 0xFF));
+        p.fillRect(QRectF(kFlag.left(), kFlag.top() + h, kFlag.width(), h), QColor(0x00, 0x39, 0xA6));
+        p.fillRect(QRectF(kFlag.left(), kFlag.top() + 2 * h, kFlag.width(), h), QColor(0xD5, 0x2B, 0x1E));
+    });
+}
+
+QIcon flagUs()
+{
+    return flag([](QPainter &p) {
+        const QColor red(0xB2, 0x22, 0x34), white(0xFF, 0xFF, 0xFF), blue(0x3C, 0x3B, 0x6E);
+        const qreal stripe = kFlag.height() / 13;
+        for (int i = 0; i < 13; ++i)
+            p.fillRect(QRectF(kFlag.left(), kFlag.top() + i * stripe, kFlag.width(), stripe + 0.01),
+                       i % 2 ? white : red);
+        const QRectF canton(kFlag.left(), kFlag.top(), kFlag.width() * 0.42, stripe * 7);
+        p.fillRect(canton, blue);
+        // Stars reduced to dots: 3 rows x 4 columns read well at icon size.
+        p.setPen(Qt::NoPen);
+        p.setBrush(white);
+        for (int r = 0; r < 3; ++r)
+            for (int c = 0; c < 4; ++c)
+                p.drawEllipse(QPointF(canton.left() + canton.width() * (c + 0.5) / 4,
+                                      canton.top() + canton.height() * (r + 0.5) / 3),
+                              0.45, 0.45);
+    });
+}
+
 } // namespace otl::icons

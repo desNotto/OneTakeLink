@@ -21,4 +21,8 @@ QIcon youtubeMark(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
 // Rule-of-thirds grid in a rounded frame: composition guides on/off.
 QIcon thirdsGrid(const QColor &color = QColor(0xF5, 0xF7, 0xFC));
 
+// Language picker: national flags in a rounded frame (Russia, USA).
+QIcon flagRu();
+QIcon flagUs();
+
 } // namespace otl::icons

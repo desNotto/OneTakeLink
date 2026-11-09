@@ -316,7 +316,7 @@ void LensLinkSource::run(DeviceInfo device)
         session.transport = device.transport;
         {
             QMutexLocker lock(&m_mutex);
-            session.stream = std::make_unique<StreamHandler>(m_packetSink, m_frameSink, m_options.hardwareDecode);
+            session.stream = std::make_unique<StreamHandler>(m_packetSink, m_frameSink, m_options.hardwareDecode, &m_clock);
         }
         runSession(session);
         net_close(sock);

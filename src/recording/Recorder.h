@@ -58,6 +58,8 @@ public:
     void onStreamFormat(const StreamFormat &format) override;
     void onPacket(const EncodedPacket &packet) override;
     void onAudio(const AudioChunk &chunk) override;
+    // Which audio to record; chunks from the other origin are ignored.
+    void setAudioOrigin(AudioChunk::Origin origin) { m_audioOrigin = origin; }
     void onStreamLost(const QString &reason) override;
 
     // Repairs takes interrupted by a crash or power loss in `folder`
@@ -99,6 +101,7 @@ private:
     std::deque<Item> m_queue;
     std::atomic<State> m_state{State::Idle};
     std::atomic<bool> m_hasStream{false};
+    std::atomic<AudioChunk::Origin> m_audioOrigin{AudioChunk::Origin::Phone};
 
     // Worker-thread state.
     StreamFormat m_format;

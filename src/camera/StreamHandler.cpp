@@ -27,9 +27,12 @@ uint64_t monotonicNs()
                         .count());
 }
 
-StreamHandler::StreamHandler(EncodedPacketSink *packets, VideoFrameSink *frames, bool hardwareDecode)
-    : m_packetSink(packets), m_frameSink(frames), m_hwDecode(hardwareDecode)
+StreamHandler::StreamHandler(EncodedPacketSink *packets, VideoFrameSink *frames, bool hardwareDecode,
+                             StreamClock *clock)
+    : m_packetSink(packets), m_clock(clock), m_frameSink(frames), m_hwDecode(hardwareDecode)
 {
+    if (m_clock)
+        m_clock->reset();
     m_windowStartNs = monotonicNs();
 }
 
@@ -52,6 +55,8 @@ bool StreamHandler::onAccessUnit(const uint8_t *data, size_t size, int64_t ptsNs
 {
     ++m_totalPackets;
     ++m_winPackets;
+    if (m_clock)
+        m_clock->observe(ptsNs, int64_t(monotonicNs()));
 
     // Gaps in capture timestamps = frames the phone dropped or the link lost.
     if (m_lastPts >= 0 && m_nominalFps > 1 && !m_paused) {
@@ -178,6 +183,8 @@ bool StreamHandler::takeStats(StreamStats *out, bool force, int minWindowMs)
 
 void StreamHandler::streamLost(const QString &reason)
 {
+    if (m_clock)
+        m_clock->reset();
     if (!started())
         return;
     if (m_packetSink)

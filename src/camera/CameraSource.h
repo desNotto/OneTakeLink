@@ -4,6 +4,7 @@
 // so another video source can be added later without touching them.
 #pragma once
 
+#include "camera/StreamClock.h"
 #include "core/VideoTypes.h"
 
 #include <QJsonObject>
@@ -73,12 +74,18 @@ public:
     // the device; the UI decides what to offer from cameraState().
     virtual void sendCommand(const QJsonObject &command) = 0;
 
+    // PC monotonic time -> this source's stream timestamps (for PC audio).
+    const StreamClock &clock() const { return m_clock; }
+
 signals:
     void statusChanged(const otl::SourceStatus &status);
     void statsChanged(const otl::StreamStats &stats);
     // Latest camera state snapshot reported by the device (zoom, lens,
     // supported formats...). Empty object when disconnected.
     void cameraStateChanged(const QJsonObject &state);
+
+protected:
+    StreamClock m_clock;
 };
 
 } // namespace otl

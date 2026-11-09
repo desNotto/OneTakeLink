@@ -56,7 +56,9 @@ FramePtr makeFramePtr(AVFrame *frameTakeOwnership);
 // 16-bit samples. ptsNs is the capture time of the first sample, on the
 // same clock as the video packets' ptsNs.
 struct AudioChunk {
+    enum class Origin { Phone, PcInput };
     std::shared_ptr<const std::vector<int16_t>> samples;
+    Origin origin = Origin::Phone;
     int sampleRate = 48000;
     int channels = 2;
     int64_t ptsNs = 0;
